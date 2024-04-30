@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# manual #
+# account: 账户名称
+# passwd: 账户密码
+# output_dir: 下载后文件存放的地址
+# type: 下载数据类型, clean or raw
+# thread: 线程
+##########
+
+# get arguments
+account=$1
+passwd=$2
+output_dir=$3
+type=$4
+thread=$5
+
+if [[ -z ${account} ]]; then
+    echo "Usage: "
+    echo -e "\t\$1: account，账户"
+    echo -e "\t\$2: passwd，密码"
+    echo -e "\t\$3: output_dir，输出目录"
+    echo -e "\t\$4: type, 'raw' or 'clean'，下载原始数据或者处理后的数据"
+    echo -e "\t\$5: thread, default 1"
+    exit 100
+fi
+
+if [[ ${type} == "clean" ]]; then
+    pat="00.CleanData"
+elif [[ ${type} == "raw" ]]; then
+    pat="01.RawData"
+fi
+
+if [[ -z ${thread} ]]; then
+    thread=1
+fi
+
+rand=$RANDOM
+
+# login in
+lnd login -u ${account} -p ${passwd}
+
+# get id
+lnd list 1>/tmp/tmp_${rand}.txt 2>/tmp/tmp_${rand}.txt
+if [[ $? -ne 0 ]]; then
+    rm -rf /tmp/tmp_${rand}.txt
+    echo "Login wrong"
+    exit 100
+fi
+root=$(cat /tmp/tmp_${rand}.txt)
+
+# get all files
+lnd list ${root} 1>/tmp/tmp_${rand}.txt 2>/tmp/tmp_${rand}.txt
+egrep "${pat}" /tmp/tmp_${rand}.txt | cut -f3 > /tmp/tmp_${rand}.fileFullname.txt
+cat /tmp/tmp_${rand}.fileFullname.txt | xargs dirname | xargs basename -a > /tmp/tmp_${rand}.fileDirname.txt
+sort -u /tmp/tmp_${rand}.fileDirname.txt > /tmp/tmp_${rand}.AllDirname.txt
+
+# download raw data
+# {} /tmp/tmp_${rand}.fileDirname.txt: 根据{}名字匹配/tmp/tmp_${rand}.fileDirname.txt中服务器文件排名
+# /tmp/tmp_${rand}.fileFullname.txt: server file path，根据排名提取目的文件
+# ${output_dir}/{}: output directory，将文件下载到指定目录中保存
+
+
+cat /tmp/tmp_${rand}.AllDirname.txt | xargs -n1 -i -P ${thread} \
+    novogene_download_dir {} /tmp/tmp_${rand}.fileDirname.txt \
+    /tmp/tmp_${rand}.fileFullname.txt \
+    ${output_dir}/{} ${root} 3
+
+# remove redundent files
+rm /tmp/tmp_${rand}.*
+
+echo "Files have been downloaded."

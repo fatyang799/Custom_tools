@@ -1,0 +1,139 @@
+
+
+# Load environment
+if (T) {
+  rm(list=ls())
+  options(stringAsFactors = F)
+  options(warn =-1)
+  library(optparse)
+  library(stringr)
+  library(reshape2)
+  library(ggplot2)
+  library(ggpubr)
+}
+
+# Set parameters
+if (T) {
+  option_list <- list(
+    make_option(c("-i", "--input"), type = "character", default = NULL, action = "store",
+                help = "The input file, which should be a matrix format. No characters exist in the file, except for header of file only when there is a header [default %default]"),
+    
+    make_option(c("-x", "--x_name"), type = "character", default = NULL, action = "store",
+                help = "The file record the x label in the figure. The order of the x_name should be same as the column of input [default %default]"),
+    
+    make_option(c("-o", "--output_pic"), type = "character", default = NULL, action = "store",
+                help = "The output boxplot file name [default %default]"),
+    
+    make_option(c("-O", "--output_mat"), type = "character", default = NULL, action = "store",
+                help = "The name of file which record output the mean value of boxplot [default %default]"),
+    
+    make_option(c("-s", "--sep"), type = "character", default = "\t", action = "store",
+                help = "The field separator character. Note: if the character has '\', then add a quote, write as -s '\\t' [default '\\t']"),
+    
+    make_option(c("-H", "--header"), type = "logical", default = TRUE, action = "store_false",
+                help = "The \"header\" argument in \"read.table\" function in R. Used to read the file in R. If set this, this means \"header=F\" [default %default]"),
+    
+    make_option(c("-m", "--comment_char"), type = "character", default = "", action = "store",
+                help = "The \"comment.char\" argument in \"read.table\" function in R. Used to read the file in R [default \"%default\"]"),
+    
+    make_option(c("-w", "--width"), type = "double", default = 8, action = "store",
+                help = "The \"width\" argument in \"ggsave\" function in R. Used to save the figure in R [default %default]"),
+    
+    make_option(c("-t", "--height"), type = "double", default = 6, action = "store",
+                help = "The \"height\" argument in \"ggsave\" function in R. Used to save the figure in R [default %default]"),
+    
+    make_option(c("-u", "--units"), type = "character", default = "in", action = "store",
+                help = "The \"units\" argument in \"ggsave\" function in R. Used to save the figure in R [default '%default']")
+  )
+}
+
+# Analysis parameters
+if (T) {
+  usage_message <- "Rscript qc_boxplot.R -i ARI_statistics.txt -x marker.txt -o H1_ari.png -O H1_ari.tab"
+  description_message <- "This Script is to plot boxplot according to a file record a matrix."
+  
+  option_object <- OptionParser(
+    usage = paste0("usage: %prog [options]\n\t",usage_message,"\n"),
+    option_list = option_list,
+    add_help_option = TRUE,
+    description = description_message
+  )
+  args <- parse_args(
+    option_object,
+    args = commandArgs(trailingOnly = TRUE),
+    print_help_and_exit = T
+  )
+}
+
+# Assign parameters
+if (T) {
+  for (i in 1:length(args)) {
+    x <- args[[i]]
+    name <- names(args)[i]
+    assign(name,x)
+  }
+  rm(name,x,i)
+}
+
+# test data
+if (F) {
+  input <- "ARI_statistics.txt"
+  header <- T
+  sep <- "\t"
+  comment_char <- ""
+  x_name <- gsub("remove_", "", colnames(dat))
+  output_pic <- "H1_ari.png"
+  output_mat <- "H1_ari.tab"
+  width <- 8
+  height <- 6
+  units = "in"
+}
+
+# read data
+if (T) {
+  dat <- read.table(input, header = header, sep = sep, comment.char = comment_char)
+  name <- read.table(x_name, header = F)[,1]
+  colnames(dat) <- name
+}
+
+# wide to long and sorting
+if (T) {
+  # wide2long
+  if (T) {
+    ggdat <- melt(data = dat, id.vars = NULL)
+    ggdat$value <- as.numeric(ggdat$value)
+  }
+  
+  # calculate the means of each marker's ARI
+  if (T) {
+    order <- sort(tapply(ggdat$value, ggdat$variable, mean), decreasing = T)
+    print(order)
+    mat <- data.frame(Marker = names(order),
+                      Mean_ARI = order)
+    mat$Marker <- gsub("[.]", "-", mat$Marker)
+    
+    write.table(mat, file = output_mat, quote = F, row.names = F, col.names = T, sep = "\t")
+  }
+  
+  # sorting
+  if (T) {
+    ggdat$variable <- factor(ggdat$variable,levels = names(order))  
+  }
+}
+
+# ggplot
+if (T) {
+  # colnames(ggdat)
+  ggboxplot(dat=ggdat, x = "variable", y = "value",
+            color = "variable", 
+            size = 0.8,
+            legend="none")+
+    xlab("Removed Marker")+ylab("Similarity with state assigned by ALL Markers")+
+    theme(axis.text.x = element_text(size = rel(1.2),angle = 50, hjust = 1, vjust = 1),
+          axis.text.y = element_text(size = rel(1.2)),
+          strip.text  = element_text(size = rel(1.2)))
+  
+  # output picture file
+  ggsave(filename = output_pic, width = width, height = height, units = units)
+}
+

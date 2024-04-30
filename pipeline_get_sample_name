@@ -1,0 +1,39 @@
+#!/bin/bash
+
+sample=$1
+suffix=$2
+
+if [[ -z ${sample} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: sample.txt file, which has 2 column separated by tab. 1st column is the file prefix. 2nd column is the run type."
+	echo -e "\t\$2: suffix characters. If type=PE, then give 2 characters. If type=SE, then give 1 character only."
+	echo -e "\t\tAll kinds of suffixs are separated by '+'. For example, '_R1.fq.gz+_R2.fq.gz+_RR.fq.gz' means:"
+	echo -e "\t\tPE dat: \${prefix}_R1.fq.gz \${prefix}_R2.fq.gz"
+	echo -e "\t\tSE dat: \${prefix}_RR.fq.gz"
+	exit 100
+fi
+
+R1=$(echo ${suffix} | cut -d "+" -f 1)
+R2=$(echo ${suffix} | cut -d "+" -f 2)
+RR=$(echo ${suffix} | cut -d "+" -f 3)
+
+if [[ -z ${R1} || -z ${R2} || -z ${RR} ]]; then
+	echo "\$2 suffix argument is wrong, please check"
+	exit 100
+fi
+
+cat ${sample} | while read -a id
+do
+	prefix=${id[0]}
+	type=${id[1]}
+	if [[ ${type} == "PE" ]]; then
+		echo ${prefix}${R1}
+		echo ${prefix}${R2}
+	elif [[ ${type} == "SE" ]]; then
+		echo ${prefix}${RR}
+	else
+		echo "The sample.txt file format is wrong, please check"
+		exit 100
+	fi
+done
+

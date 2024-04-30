@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Manual
+#       print difference set
+#
+# Usage:
+#       setdiff file1 file2
+#
+# Options:
+#       - file1/2: the input fiile, which has only one column.
+#
+# Output:
+#       print stdout on the screen the difference between two sets
+
+file1=$1
+file2=$2
+
+sort ${file1} ${file2} | uniq

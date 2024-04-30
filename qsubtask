@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# manual
+# node: assign task to which node
+# script: specific script
+#
+# For example:
+# bash qsub.sh 12 mapping.sh
+
+node=$1
+script=$2
+
+echo "bash ${script}" | qsub -V -cwd -S /bin/bash -now y -pe mpi 5 -N node${node} -q all.q@comput${node}

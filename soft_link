@@ -1,0 +1,3 @@
+#!/bin/bash
+
+ls -l --color=auto $@ | grep "^l" | sed -r "s/\s+/\t/g" | cut -f 9- | sed "s/\t->//g"

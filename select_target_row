@@ -1,0 +1,13 @@
+#!/bin/bash
+
+input=$1
+row=$2
+
+if [[ -z ${input} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: input file name"
+	echo -e "\t\$2: row_number"
+	exit 100
+fi
+
+head -n ${row} ${input} | tail -n 1

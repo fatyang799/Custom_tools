@@ -1,0 +1,66 @@
+#!/bin/bash
+# Name: ideas_bedgraph2bw_list
+
+# manual:
+#   A list of IDEAS output bedgraph file to a list of standard bigwig file (200bp bin size and remove blacklist region)
+#
+#   ideas_bedgraph2bw_list bedgraph_file_list output_bigwig_file_list thread
+#     - bedgraph: the input bedgraph file
+#     - bigwig: the output bigwig file
+#     - windows: the windows file, 200bp bin size and remove blacklist region (windowsNoBlack.noid.bed)
+#     - GENOMESIZES: the Genome size file (hg38.chrom.1_22XY.sizes)
+#
+# For example:
+#   ideas_bedgraph2bw_list bedgraph.txt bigwig.txt 10 windowsNoBlack.noid.bed hg38.chrom.1_22XY.sizes
+#
+# Output:
+#   - H2AFZ.bw: the bigwig file, 200bp bin size without blacklist region
+
+
+# user input files
+bedgraph_file_list=$1
+output_bigwig_file_list=$2
+thread=$3
+windows=$4
+GENOMESIZES=$5
+
+# default setting
+if [[ -z ${windows}  ]]; then
+	windows_root=/share/home/fatyang/Database/S3V2_Genome_windows/1.human/1.hg38/1.bin200
+	windows=${windows_root}/windowsNoBlack.noid.bed
+	GENOMESIZES=/share/home/fatyang/Program/S3V2_IDEAS_ESMP/genomesize/hg38.chrom.1_22XY.sizes
+fi
+
+# check the files
+n1=$(wc -l ${bedgraph_file_list} | cut -d" " -f1)
+n2=$(wc -l ${output_bigwig_file_list} | cut -d" " -f1)
+
+if [[ $n1 -ne $n2 ]]; then
+	echo "The number of input bedgraph is not same as the number of output bigwig, please check the files"
+	exit 100
+fi
+
+if [[ ! -f $windows ]]; then
+	echo "The windows file is not exist"
+	exit 200
+fi
+
+if [[ ! -f $GENOMESIZES ]]; then
+	echo "The GENOMESIZES file is not exist"
+	exit 300
+fi
+
+# bedgraph 2 bigwig
+scipt=/share/home/fatyang/Program/Custom_tools/ideas_bedgraph2bw
+cat ${bedgraph_file_list} | xargs -n1 -P ${thread} -i bash ${scipt} {} {}.bw ${windows} ${GENOMESIZES}
+
+
+# change file names
+seq 1 $n1 | while read id
+do
+	raw_bigwig=$(head -n $id ${output_bigwig_file_list} | tail -n 1)
+	raw_bedgraph=$(head -n $id ${bedgraph_file_list} | tail -n 1)
+	bigwig=${raw_bedgraph}.bw
+
+	mv ${bigwig} ${raw_bigwig}
+done

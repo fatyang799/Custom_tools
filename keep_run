@@ -1,0 +1,79 @@
+#!/bin/bash
+# Name: keep_run
+# Description:
+#		This script will ensure that the program run successfully.
+#		If the program run failed, it will automatically re-run again.
+#
+# Example:
+#		# work as a script
+#		bash keep_run run_ideas_test.sh \
+#			"ls */*/*pdf | wc -l" "30" \
+#			"qstat | grep node | wc -l" "1"
+#
+#		# work as a command
+#		keep_run  run_ideas_test.sh \
+#			"ls */*/*pdf | wc -l" "30" \
+#			"qstat | grep node | wc -l" "1"
+######################################################################
+
+####### get parameters #######
+# Re-run script.
+script=$1
+
+# Set the command to check whehter the program is end. Using quote for the command, eg "qstat | grep node | wc -l".
+task_status_command=$2
+# If the program end, the output of task_status_command, eg 1
+task=$3
+
+# Set the command to check whehter the target is successful. Judge results from the status code. Using quote for the command, eg "ls */*/*pdf | wc -l".
+target_status_command=$4
+# If getting target aims successfully, the output of target_status_command, eg 30
+target=$5
+##############################
+
+
+####### define some settings #######
+i=1
+root=$(dirname $script)
+####################################
+
+
+
+############################ Uninterrupted monitoring ############################
+while ture
+do
+	# whether the job have ended?
+	result1=$(echo $task_status_command | bash)
+	if [[ $result1 == $task ]]; then
+		# ended job
+		condition1=1
+	else
+		# unended job
+		condition1=0
+	fi
+
+	# whether the job have succeed?
+	result2=$(echo $target_status_command | bash)
+	if [[ $result2 == $target ]]; then
+		# successful job
+		condition2=0
+	else
+		# failed job
+		condition2=1
+	fi
+
+	# ended job
+	if [[ $condition1 -eq 1 ]]; then
+		if [[ $condition2 -eq 1 ]]; then
+			# failed job
+			bash ${script} 1>${root}/std_${i}.out 2>${root}/err_${i}.out
+			((i++))
+		else
+			# successful job
+			break
+		fi
+	fi
+
+	sleep 300
+done
+

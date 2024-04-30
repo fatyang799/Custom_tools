@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# novogene_download_dir
+
+dirname_in_novogene=$1
+dirlist=$2
+filelist=$3
+output=$4
+root=$5
+thread=$6
+
+if [[ -z ${dirname_in_novogene} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: dirname_in_novogene，在诺禾系统里存放数据的dirname"
+	echo -e "\t\$2: dirlist，在诺禾系统里所有文件的dirname"
+	echo -e "\t\$3: filelist，在诺禾系统里所有文件的绝对路径"
+	echo -e "\t\$4: output dirname，输出路径"
+	echo -e "\t\$5: root for novogene system，根节点，查询系统所需"
+	echo -e "\t\$6: thread, default 3"
+	exit 100
+fi
+
+if [[ -z ${thread} ]]; then
+	thread=3
+fi
+
+rand=$RANDOM
+
+tmp=$HOME/tmp/novogene_download/download_${rand}
+mkdir -p ${tmp}
+
+mkdir -p ${output}
+
+# get target file
+awk -v test=${dirname_in_novogene} '{if($0 == test) {print NR}}' ${dirlist} > ${tmp}/target_row.txt
+select_target_row_dat ${filelist} ${tmp}/target_row.txt ${tmp}/target_row.file.txt
+
+# download
+cat ${tmp}/target_row.file.txt | xargs -n1 -i -P ${thread} \
+	lnd cp ${root}/{} ${output}
+
+rm -rf ${tmp}

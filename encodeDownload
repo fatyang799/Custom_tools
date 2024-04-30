@@ -1,0 +1,64 @@
+#!/bin/bash
+
+datatype=$1
+url=$2
+output_dir=$3
+scipt_name=$4
+
+# 使用说明
+if [[ -z ${url} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: 你希望将下载fastq文件的实验类型，可以是ChIPseq、RNAseq、ATACseq、DNase、WGBS等，不区分大小写"
+	echo -e "\t\$2: 输入包含有所有你想要爬取数据的网站，例如 https://www.encodeproject.org/search/?type=Experiment&status=released&biosample_ontology.term_name=H1&target.label=H3K4me3"
+	echo -e "\t\$3: 在下载fastq的脚本中，下载fastq文件保存的路径，并且下载fastq文件的md5值也会保存在此处，如果不写，默认为 ./"
+	echo -e "\t\$4: 下载fastq的脚本名称，如果不写，默认为 download.sh"
+	exit 100
+fi
+
+# 定义函数检查命令运行结果
+function stat_check {
+	stat=$?
+	if [[ $stat -eq 0 ]]; then
+		echo $1
+	fi
+	if [[ $stat -ne 0 ]]; then
+		echo $2
+		exit 100
+	fi
+}
+
+# 脚本检查
+if true; then
+	if [[ ${datatype,,} != "chipseq" && ${datatype,,} != "rnaseq" && ${datatype,,} != "atacseq" && ${datatype,,} != "dnase" && ${datatype,,} != "wgbs" ]]; then
+		echo "The $1 parameter raise error, you can only input ChIPseq, RNAseq, ATACseq DNase or WGBS"
+		exit 100
+	fi
+fi
+
+# 参数检查
+if true; then
+	if [[ -z ${output_dir} ]]; then
+		output_dir=./
+	fi
+	if [[ -z ${scipt_name} ]]; then
+		scipt_name=download.sh
+	fi
+fi
+
+
+# 爬取数据
+if true; then
+	python $HOME/Program/Custom_tools/encode/${datatype,,}/1.get_all_accession_ID.py ${url}
+	stat_check "step1 successfully done." "step1 raise error."
+
+	python $HOME/Program/Custom_tools/encode/${datatype,,}/2.get_download_info_according_to_ID.py
+	stat_check "step2 successfully done." "step2 raise error."
+
+	python $HOME/Program/Custom_tools/encode/${datatype,,}/3.CT_file_for_Experiment.py
+	stat_check "step3 successfully done." "step3 raise error."
+
+	bash $HOME/Program/Custom_tools/encode/${datatype,,}/4.get_download_md5.sh ${output_dir} ${scipt_name}
+	stat_check "step4 successfully done." "step4 raise error."
+fi
+
+

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Manual
+#       print difference set
+#
+# Usage:
+#       setdiff file1 file2
+#
+# Options:
+#       - file1/2: the input fiile, which has only one column.
+#
+# Output:
+#       print stdout on the screen the difference between two sets
+
+file1=$1
+file2=$2
+
+if [[ -z ${file1} ]]; then
+	echo "Usage: the overlap of file1 and file2"
+	echo -e "\t\$1: The file1"
+	echo -e "\t\$2: The file2"
+
+	exit 100
+fi
+
+sort ${file1} ${file2} | uniq -d

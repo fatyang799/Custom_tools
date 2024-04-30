@@ -1,0 +1,17 @@
+#!/bin/bash
+
+input=$1
+n=$2
+
+if [[ -z ${input} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: file name"
+	echo -e "\t\$2: n number, the row number you want to check. Default n=10."
+	exit 100
+fi
+
+if [[ -z $n ]]; then
+	n=10
+fi
+
+zcat ${input} | head -n ${n} 

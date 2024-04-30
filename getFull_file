@@ -1,0 +1,24 @@
+#!/bin/bash
+
+target=$1
+
+if [[ -z ${target} ]]; then
+	echo "Usage: "
+	echo -e "\tgetFull_file \$FILE"
+	exit 100
+fi
+
+now=$PWD
+if [[ ! -f ${target} ]]; then
+	echo -e "The ${target} is not exist."
+	exit 100
+fi
+
+dir=$(dirname ${target})
+filename=$(basename ${target})
+cd ${dir}
+dir=$PWD
+target=${dir}/${filename}
+cd ${now}
+
+echo "${target}"

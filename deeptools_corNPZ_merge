@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The input npz file1."
+	echo -e "\t\$2: The order of input npz file1, such as \"line1: #'chr'_'start'_'end'   line2:chr8_0_200\""
+	echo -e "\t\$3: The input npz file2."
+	echo -e "\t\$4: The order of input npz file2, such as \"line1: #'chr'_'start'_'end'   line2:chr8_0_200\""
+	echo -e "\t\$5: The output merged npz filename."
+	echo -e "\t\$6: The filename of order for output merged npz."
+
+	exit 100
+fi
+
+npz1=$1
+order1=$2
+npz2=$3
+order2=$4
+output_npz=$5
+output_order=$6
+
+script=/share/home/fatyang/Program/Custom_tools/deeptools_corNPZ_merge.py
+python ${script} ${npz1} ${order1} ${npz2} ${order2} ${output_npz} ${output_order}
+

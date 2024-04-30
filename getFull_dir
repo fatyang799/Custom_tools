@@ -1,0 +1,21 @@
+#!/bin/bash
+
+target=$1
+
+if [[ -z ${target} ]]; then
+	echo "Usage: "
+	echo -e "\tgetFull_dir \$PATH"
+	exit 100
+fi
+
+now=$PWD
+if [[ ! -d ${target} ]]; then
+	echo -e "The ${target} directory is not exist."
+	exit 100
+fi
+
+cd ${target}
+target=$PWD
+cd ${now}
+
+echo "${target}"

@@ -1,0 +1,7 @@
+ls ./*fastq.gz | while read id
+do
+fq_file_name=`echo $id|sed 's/fastq.gz/fq.gz/g'`
+mv $id $fq_file_name
+done
+
+echo -e '\nall fastq.gz files have been renamed as fq.gz!\n'

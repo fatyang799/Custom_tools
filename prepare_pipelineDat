@@ -1,0 +1,154 @@
+#!/bin/bash
+
+input=$1
+proj=$2
+
+# 使用说明
+if [[ -z ${input} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: input file, which record all full path of source files. \n\t    The standard file name should be [\${ID}_]\${cell}_\${mk}_rep\${rep}_R?[12R].fq.gz"
+	echo -e "\t\$2: project full path, default \$PWD"
+	exit 100
+fi
+
+if [[ -z ${proj} ]]; then
+	proj=$PWD
+fi
+
+##################### run directly #####################
+# get file name and path
+if true; then
+	cat ${input} | xargs basename -a > basename.txt
+	cat ${input} | xargs dirname > dirname.txt
+
+	sed -r "s/_R?[12R].fq.gz//g" basename.txt > prefix.txt
+fi
+
+# check the info
+if true; then
+	echo -e "id\tcell\tmk\trep\tnum\tpath\tprefix" > summary
+	paste dirname.txt prefix.txt | sort | uniq -c | sed -r "s/^\s+//g" | sed -r "s/\s+/\t/g" | while read num path prefix
+	do
+		ncol=$(echo ${prefix} | awk -F "_" '{print NF}')
+		echo ${prefix} | egrep "rep[0-9]+" 1>/dev/null 2>&1
+		if [[ $? -eq 0 ]]; then
+			last_rep=T
+		else
+			last_rep=F
+		fi
+
+		if [[ ${ncol} -lt 3 || ${ncol} -gt 4 ]]; then
+			echo "The naming rule of ${prefix} is wrong, please check"
+			echo "The naming rule should be [\${ID}_]\${cell}_\${mk}_\${rep}"
+			exit 100
+		fi
+
+		# 3列信息
+		if [[ ${ncol} -eq 3 ]]; then
+			if [[ ${last_rep} == "T" ]]; then
+				id=na
+				cell=$(echo ${prefix} | cut -d "_" -f1)
+				mk=$(echo ${prefix} | cut -d "_" -f2)
+				rep=$(echo ${prefix} | cut -d "_" -f3)
+			elif [[ ${last_rep} == "F" ]]; then
+				id=$(echo ${prefix} | cut -d "_" -f1)
+				cell=$(echo ${prefix} | cut -d "_" -f2)
+				mk=$(echo ${prefix} | cut -d "_" -f3)
+				rep=na
+			fi
+		fi
+
+		# 4列信息
+		if [[ ${ncol} -eq 4 ]]; then
+			if [[ ${last_rep} == "T" ]]; then
+				id=$(echo ${prefix} | cut -d "_" -f1)
+				cell=$(echo ${prefix} | cut -d "_" -f2)
+				mk=$(echo ${prefix} | cut -d "_" -f3)
+				rep=$(echo ${prefix} | cut -d "_" -f4)
+			elif [[ ${last_rep} == "F" ]]; then
+				echo "The naming rule of ${prefix} is wrong, please check"
+				echo "The naming rule should be [\${ID}_]\${cell}_\${mk}_\${rep}"
+				exit 100
+			fi
+		fi
+
+		echo -e "${id}\t${cell}\t${mk}\t${rep}\t${num}\t${path}\t${prefix}"
+	done >> summary
+fi
+
+# let user check the info and confirm the info
+if true; then
+	echo "######### id info #########"
+	tail -n+2 $PWD/summary | cut -f1 | sort | uniq -c
+
+	sleep 1
+	echo "\n######### cell info #########"
+	tail -n+2 $PWD/summary | cut -f2 | sort | uniq -c
+
+	sleep 1
+	echo "\n######### mk info #########"
+	tail -n+2 $PWD/summary | cut -f3 | sort | uniq -c
+
+	sleep 1
+	echo "\n######### rep info #########"
+	tail -n+2 $PWD/summary | cut -f4 | sort | uniq -c
+
+	read -r -p "请检查以上信息是否正确，如果正确则按 'y' 确认，不正确则按 'n' 重新整理数据: " confirm
+fi
+
+# format the data
+if [[ ${confirm} == "y" ]]; then
+	# cell is lower case format
+	cell=$(tail -n+2 $PWD/summary | cut -f2 | sort | uniq -c | sort -nr | sed -r "s/^\s+//g" | cut -d " " -f2 | head -n1)
+	cell_format=${cell,,}
+
+	echo -e "Target\tSource" > file_correspondence.txt
+	tail -n+2 $PWD/summary | while read id cell mk rep num path prefix
+	do
+		ls ${proj}/${cell_format}_${mk}_rep* 1>/dev/null 2>&1
+		if [[ $? -eq 0 ]]; then
+			max=$(ls ${proj}/${cell_format}_${mk}_rep* | xargs basename -a | cut -d "_" -f3 | sed "s/rep//g" | sort -nr | head -n1)
+		else
+			max=0
+		fi
+		now_rep=$(expr ${max} + 1)
+
+		if [[ ${num} -eq 1 ]]; then
+			old_rr=$(ls ${path}/${prefix}*)
+			new_rr=${proj}/${cell_format}_${mk}_rep${now_rep}_RR.fq.gz
+			echo -e "${new_rr}\t${old_rr}"
+			touch ${new_rr}
+		elif [[ ${num} -eq 2 ]]; then
+			old_r1=$(ls ${path}/${prefix}* | egrep "R?1.fa?s?t?q.gz")
+			new_r1=${proj}/${cell_format}_${mk}_rep${now_rep}_R1.fq.gz
+			old_r2=$(ls ${path}/${prefix}* | egrep "R?2.fa?s?t?q.gz")
+			new_r2=${proj}/${cell_format}_${mk}_rep${now_rep}_R2.fq.gz
+
+			echo -e "${new_r1}\t${old_r1}"
+			echo -e "${new_r2}\t${old_r2}"
+			touch ${new_r1} ${new_r2}
+		elif [[ ${num} -eq 3 ]]; then
+			old_rr=$(ls ${path}/${prefix}*)
+			new_rr=${proj}/${cell_format}_${mk}_rep${now_rep}_RR.fq.gz
+			
+			old_r1=$(ls ${path}/${prefix}* | egrep "R?1.fa?s?t?q.gz")
+			new_r1=${proj}/${cell_format}_${mk}_rep${now_rep}_R1.fq.gz
+			old_r2=$(ls ${path}/${prefix}* | egrep "R?2.fa?s?t?q.gz")
+			new_r2=${proj}/${cell_format}_${mk}_rep${now_rep}_R2.fq.gz
+
+			echo -e "${new_rr}\t${old_rr}"
+			echo -e "${new_r1}\t${old_r1}"
+			echo -e "${new_r2}\t${old_r2}"
+			touch ${new_rr} ${new_r1} ${new_r2}
+		else
+			echo "The number of ${path}/${prefix} files is ${num}, which is wrong situation, please check"
+			exit 100
+		fi
+	done >> file_correspondence.txt
+else
+	exit 100
+fi
+
+today=$(date "+%Y%m%d")
+rm basename.txt dirname.txt prefix.txt *_R*.fq.gz
+mv summary .${today}_summary

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+input_files=$1
+output=$2
+
+if [[ -z ${input_files} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: Input files list, which record all files need to be input."
+	echo -e "\t\$2: output filename."
+
+	exit 100
+fi
+
+# get all files
+cat ${input_files} | xargs paste > ${output}.average.txt
+n=$((head ${output}.average.txt; tail ${output}.average.txt) | awk -F "\t" '{print NF}' | sort -u | wc -l)
+
+if [[ $n -ne 1 ]]; then
+	echo "the ${marker} files have not identical row number, please check"
+	exit 100
+fi
+
+script=$HOME/Program/Custom_tools/ideas_get_mean_signal_track.R
+Rscript ${script} -i ${output}.average.txt -o ${output}
+
+rm ${output}.average.txt

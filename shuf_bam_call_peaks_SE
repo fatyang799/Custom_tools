@@ -1,0 +1,33 @@
+#!/bin/bash
+
+####### sample #######
+input_bam=$1
+output_dir=$2
+
+prefix=$(echo ${input_bam} | xargs -n1 basename)
+# tmp dir
+if [[ ! -d ${output_dir} ]]; then
+	mkdir -p ${output_dir}
+fi
+
+# 1.bam2bed
+echo "1.bam2bed begin"
+samtools view -bS ${input_bam} -o ${output_dir}/chr1_${prefix} chr1
+samtools index ${output_dir}/chr1_${prefix}
+
+bam2bed < ${output_dir}/chr1_${prefix} > ${output_dir}/reads.bed
+echo "1.bam2bed done"
+
+# 2.sample_bam 5%-100%
+echo "2.sample_bam begin"
+total=$(wc -l ${output_dir}/reads.bed | cut -d" " -f1)
+seq 0.05 0.05 1 | xargs -n1 -i echo "${total}*{}" | bc | cut -d "." -f1 | xargs -n1 -P10 -i shuf -n {} -o ${output_dir}/reads_{}.bed ${output_dir}/reads.bed
+echo "2.sample_bam done"
+
+####### call peaks #######
+echo "call peaks begin"
+#seq 0.05 0.05 1 | xargs -n1 -i echo "${total}*{}" | bc | cut -d "." -f1 | xargs -n1 -P10 mkdir -p ${output_dir}/reads_{}
+seq 0.05 0.05 1 | xargs -n1 -i echo "${total}*{}" | bc | cut -d "." -f1 | xargs -n1 -P10 -i macs2 callpeak -f BED -t ${output_dir}/reads_{}.bed -g 3088269832 -n reads_{} --outdir ${output_dir}/reads_{} --nomodel --extsize 200 -q 0.01 1>/dev/null 2>&1
+echo "call peaks done"
+
+rm ${output_dir}/*bed

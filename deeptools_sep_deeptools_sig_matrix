@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# manual:
+#   sep_deeptools_sig_matrix bin_value.matrix thread
+#     - bin_value.matrix: a txt file which contain a list of ideas input
+#                         signal txt file without genome locus
+#     - thread: the thread number
+#
+# Note:
+#   1. all results are saved in dirname(bin_value.matrix)
+#
+# For example:
+#   sep_deeptools_sig_matrix multiBigwigSummary.tab 30
+#
+# Output:
+#   - H1_M1.H3K23ac.tab
+#   - H1_M2.H3K4ac.tab
+#   - ......
+
+# 接收参数
+matrix=$1
+thread=$2
+
+# 定义root路径
+root=$(dirname $matrix)
+
+# 去除NA数据
+grep -v "nan" ${matrix} > ${matrix}.rm_nan
+
+
+# 数据切割
+i=0
+n=4
+head -1 ${matrix} | tr "\t" "\n" | tail -n+4 | sed "s/'//g" | while read id
+do
+    # id=ENCFF000AXJ_H3K4me1
+    ((i++))
+    cut -f $n ${matrix}.rm_nan > ${root}/${id}.tab &
+    ((n++))
+    if [ $i -ge $thread ]; then
+      wait
+      i=0
+    fi
+done
+
+wait
+echo 'done!'

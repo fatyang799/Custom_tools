@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The input tab file1."
+	echo -e "\t\$2: The order of input tab file1, such as \"chr8_0_200\""
+	echo -e "\t\$3: The input tab file2."
+	echo -e "\t\$4: The order of input tab file2, such as \"chr8_0_200\""
+	echo -e "\t\$5: The output merged tab filename."
+	echo -e "\t\$6: The bed location of output merged tab."
+
+	exit 100
+fi
+
+tab1=$1
+ord1=$2
+tab2=$3
+ord2=$4
+out_tab=$5
+out_loc=$6
+
+script=/share/home/fatyang/Program/Custom_tools/deeptools_corTAB_merge.py
+python ${script} ${tab1} ${ord1} ${tab2} ${ord2} ${out_tab} ${out_loc}
+

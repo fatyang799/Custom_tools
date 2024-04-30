@@ -1,0 +1,17 @@
+#!/bin/bash
+
+oldFile=$1
+newFile=$2
+unMapped=$3
+
+if [[ -z $1 ]]; then
+	echo "Usage:"
+	echo -e "\tno1 arugment: oldFile (hg19)"
+	echo -e "\tno2 arugment: newFile (hg38)"
+	echo -e "\tno3 arugment: unMapped (failed file)"
+	exit 1
+fi
+
+chain_file=/share/home/fatyang/Genomes/liftOver/1.hg19Tohg38/hg19ToHg38.over.chain
+
+liftOver ${oldFile} ${chain_file} ${newFile} ${unMapped}

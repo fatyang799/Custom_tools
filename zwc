@@ -1,0 +1,3 @@
+#! /bin/bash
+
+echo "$(zcat -f < "$@" | wc -l) $@"

@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# manual:
+#   ideas_signal2bedgraph2bw file_list_file
+#     - file_list_file: a txt file which contain a list of ideas input
+#                       signal txt file without genome locus
+#
+# Note:
+#   1. all results are saved in dirname(file_list_file)
+#
+# For example:
+#   ideas_signal2bedgraph2bw file.txt
+#
+# Output:
+#   - raw input file: H1_M10.H3K23ac.S3V2.bedgraph.NBP.txt
+#   - output bigwig file: H1_M10.H3K23ac.S3V2.bedgraph.NBP.bw
+#   - output bedgraph file: H1_M10.H3K23ac.S3V2.bedgraph.NBP.bedgraph
+
+
+ideas_txt_file=$1
+
+i=0
+thread=25
+windows=/public/home/yangliu/Genomes/S3V2/Genome_bin/windowsNoBlack.noid.bed
+cat ${ideas_txt_file}|while read id
+do
+	((i++))
+	bedgraph=$(echo $id|sed 's/txt/bedgraph/g')
+
+	paste ${windows} ${id} | sort -k1,1 -k2,2n - >${bedgraph} &
+	if [ $i -ge $thread ]; then
+		wait
+		i=0
+	fi
+done
+
+
+wait
+i=0
+thread=3
+chromsizes=/public/home/yangliu/Program/S3V2_IDEAS_ESMP/genomesize/hg38.chrom.1_22XY.sizes
+cat ${ideas_txt_file}|while read id
+do
+	((i++))
+	bw=$(echo $id|sed 's/txt/bw/g')
+	bedgraph=$(echo $id|sed 's/txt/bedgraph/g')
+
+	bedGraphToBigWig ${bedgraph} ${chromsizes} ${bw} &
+	if [ $i -ge $thread ]; then
+		wait
+		i=0
+	fi
+done
+
+echo "Successfully transfer ideas input txt file to bedgraph and bigwig file"

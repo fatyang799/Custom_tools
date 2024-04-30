@@ -1,0 +1,168 @@
+
+
+# Load environment
+if (T) {
+  rm(list=ls())
+  options(stringAsFactors = F)
+  options(warn =-1)
+  library(optparse)
+  library(stringr)
+  library(ggplot2)
+  library(RColorBrewer)
+}
+
+# Set parameters
+if (T) {
+  option_list <- list(
+    make_option(c("-d", "--depth"), type = "character", default = "multiqc_samtools_flagstat.txt", action = "store",
+                help = "The sequencing depth summary file [default %default]"),
+    
+    make_option(c("-e", "--enrich"), type = "character", default = "deeptools_plot_fingerprint_with0_metrics.txt", action = "store",
+                help = "The signal enrichment level summary file, which derive from deeptools plotFingerprint [default %default]"),
+    
+    make_option(c("-g", "--group"), type = "character", default = "sample.group", action = "store",
+                help = "The grouping info for samples. The order in this file is same as **the enrich file** [default %default]"),
+    
+    make_option(c("-x", "--xlab"), type = "character", default = "sample.name", action = "store",
+                help = "The alias for samples. It is recommond to using \"repn_n\" format. Because the group info will be shown in faceting. The order in this file is same as **the enrich file** [(optional) default %default]"),
+    
+    make_option(c("-D", "--output_depth"), type = "character", default = "sequence_depth.png", action = "store",
+                help = "The output file name for sequencing depth [default %default]"),
+    
+    make_option(c("-E", "--output_enrich"), type = "character", default = "signal_enrichment.png", action = "store",
+                help = "The output file name for signal enrichment level summary [default %default]")
+  )
+}
+
+# Analysis parameters
+if (T) {
+  usage_message <- "Rscript deeptools_replicated_data_selection_enrichment_and_depth.R -d multiqc_samtools_flagstat.txt -e deeptools_plot_fingerprint_with0_metrics.txt -D sequence_depth.png -E signal_enrichment.png"
+  description_message <- "This Script is to plot barplot for sequencing depth and signal enrichment."
+  
+  option_object <- OptionParser(
+    usage = paste0("usage: %prog [options]\n\t",usage_message,"\n"),
+    option_list = option_list,
+    add_help_option = TRUE,
+    description = description_message
+  )
+  args <- parse_args(
+    option_object,
+    args = commandArgs(trailingOnly = TRUE),
+    print_help_and_exit = T
+  )
+}
+
+# Assign parameters
+if (T) {
+  for (i in 1:length(args)) {
+    x <- args[[i]]
+    name <- names(args)[i]
+    assign(name,x)
+  }
+  rm(name,x,i)
+}
+
+# Test data
+if (F) {
+  xlab <- "sample.name"
+  group <- "sample.group"
+  depth <- "multiqc_samtools_flagstat.txt"
+  enrich <- "deeptools_plot_fingerprint_with0_metrics.txt"
+}
+
+# sequence depth
+if (T) {
+  depth <- read.table(depth, header = T, sep = "\t", comment.char = "", fill = T)
+  colnames(depth)
+  depth <- depth[,c("Sample", "total_passed")]
+}
+
+# signal enrichment
+if (T) {
+  enrich <- read.table(enrich, header = T, sep = "\t")
+}
+
+# Group info: the order in this file is same as the order of enrich variable
+if (T) {
+  group <- read.table(group, header = F, sep = "\t", fill = T, comment.char = "")[,1]
+  enrich$Group <- group
+}
+
+# merge data and format the data
+if (T) {
+  # merge the data
+  if (T) {
+    depth$Sample <- str_extract(depth$Sample, paste(enrich$Sample, collapse="|"))
+    dat <- merge(enrich, depth, by = "Sample")
+  }
+  
+  # format the data
+  if (T) {
+    # select data
+    if (T) {
+      colnames(dat)
+      ggdat <- dat[,c("Sample", "total_passed", "Synthetic.JS.Distance", "Group")]
+    }
+    
+    # get numbering
+    if (T) {
+      for (g in unique(ggdat$Group)) {
+        # g <- "293t_H2AK5ac"
+        number <- nrow(ggdat[ggdat$Group == g,])
+        ggdat$Number[ggdat$Group == g] <- paste0("File", 1:number) 
+      }
+    }
+    
+    # make sure the order
+    if (T) {
+      ggdat$Group <- factor(ggdat$Group)
+    }
+  }
+}
+
+# xlab info: the order in this file is same as the order of enrich variable
+if (exists("xlab")) {
+  ggdat <- ggdat[match(enrich$Sample, ggdat$Sample), ]
+  xlab <- read.table(xlab, header = F, sep = "\t", fill = T, comment.char = "")[,1]
+  ggdat$Sample <- xlab
+}
+
+# output plot
+if (T) {
+  colnames(ggdat)
+  
+  # sequence depth
+  if (T) {
+    ggplot(data = ggdat) + 
+      geom_bar(aes(x = Sample, y = total_passed, fill = Number), stat = "identity") + 
+      scale_x_discrete(name = "") + 
+      scale_y_continuous(name = "Number of Reads") + 
+      facet_wrap(~Group, nrow = 4, scales = "free_x") + 
+      theme(axis.text.x = element_text(size = rel(1.2), angle = 30, hjust = 1, vjust = 1),
+            axis.text.y = element_text(size = rel(1.1), angle = 0),
+            axis.title.y = element_text(size = rel(1.2), angle = 90),
+            strip.text = element_text(size = rel(1.2), angle = 0),
+            legend.position = "none")
+    
+    ggsave(filename = output_depth, width = 12,height = 8)  
+  }
+  
+  # signal enrichment
+  if (T) {
+    ggplot(data = ggdat) + 
+      geom_bar(aes(x = Sample, y = Synthetic.JS.Distance, fill = Number), stat = "identity") + 
+      scale_x_discrete(name = "") + 
+      scale_y_continuous(name = "Enrichment level") + 
+      facet_wrap(~Group, nrow = 4, scales = "free_x") + 
+      theme(axis.text.x = element_text(size = rel(1.2), angle = 30, hjust = 1, vjust = 1),
+            axis.text.y = element_text(size = rel(1.1), angle = 0),
+            axis.title.y = element_text(size = rel(1.2), angle = 90),
+            strip.text = element_text(size = rel(1.2), angle = 0),
+            legend.position = "none")
+    
+    ggsave(filename = output_enrich, width = 12,height = 8)
+  }
+}
+
+
+

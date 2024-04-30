@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# remove_column_dat
+
+input=$1
+output=$2
+removed_column=$3
+header=$4
+
+if [[ -z ${input} ]]; then
+	echo "Usage:"
+	echo -e "\t\$1: Input file, separated by **tab**"
+	echo -e "\t\$2: Output file name"
+	echo -e "\t\$3: Removed column number"
+	echo -e "\t\$4: Whether the file has header, T for yes, F for no"
+	exit 100
+fi
+
+# get content
+if [[ ${header} == "T" ]]; then
+	head -n 1 ${input} > ${output}.header
+	tail -n+2 ${input} > ${output}.content1
+elif [[ ${header} == "F" ]]; then
+	cp ${input} ${output}.content1
+fi
+
+# remove unwanted column
+total=$(head -n1 ${output}.content1 | awk -F "\t" '{print NF}')
+
+if [[ $removed_column -eq 1 ]]; then
+	after=$(expr $removed_column + 1)
+	cut -f ${after}- ${output}.content1 > ${output}.content2
+elif [[ $removed_column -eq $total ]]; then
+	before=$(expr $removed_column - 1)
+	cut -f 1-${before} ${output}.content1 > ${output}.content2
+else
+	before=$(expr $removed_column - 1)
+	after=$(expr $removed_column + 1)
+	cut -f 1-${before},${after}- ${output}.content1 > ${output}.content2
+fi
+
+# output
+if [[ ${header} == "T" ]]; then
+	cat ${output}.header ${output}.content2 > ${output}
+	rm ${output}.header ${output}.content1 ${output}.content2
+elif [[ ${header} == "F" ]]; then
+	mv ${output}.content2 ${output}
+	rm ${output}.content1
+fi

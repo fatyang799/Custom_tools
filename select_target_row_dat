@@ -1,0 +1,17 @@
+#!/bin/bash
+
+input=$1
+row=$2
+output=$3
+
+if [[ -z ${input} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: input, whose field separator character is **tab**"
+	echo -e "\t\$2: row_file recording the wanted row number"
+	echo -e "\t\$3: output file with **tab** field separator character"
+	exit 100
+fi
+
+script=$HOME/Program/Custom_tools/select_target_row_dat.R
+
+Rscript ${script} -i ${input} -r ${row} -o ${output}

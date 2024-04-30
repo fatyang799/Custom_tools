@@ -1,0 +1,16 @@
+#!/bin/bash
+
+input=$1
+out_depth=$2
+out_enrich=$3
+
+if [[ -z $1 ]]; then
+  echo "Usage: "
+  echo -e "\t\$1: The input file (depth_enrichment.txt), output of deeptools_replicated_data_selection_enrichment_and_depth.R script."
+  echo -e "\t\$2: The depth summary output filename."
+  echo -e "\t\$3: The enrichment summary output filename."
+  exit 100
+fi
+
+script=~/Program/Custom_tools/deeptools_replot_depth_enrich_summary.R
+Rscript ${script} ${input} ${out_depth} ${out_enrich}

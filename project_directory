@@ -1,0 +1,20 @@
+#!/bin/bash 
+
+root=$1
+type=$2
+
+if [[ -z ${root} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: Target root directort."
+	echo -e "\t\$2: Data type, such as 1.histone_chip."
+	
+	exit 100
+fi
+
+if [[ -z ${type} ]]; then
+	echo -e "Please give a \`Data type\` argument, such as 1.histone_chip."
+	exit 100
+fi
+
+mkdir -p ${root}/0.scripts/2.basic_process/${type}
+mkdir -p ${root}/1.Raw_Data/${type}

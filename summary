@@ -1,0 +1,24 @@
+#!/bin/bash
+
+input=$1
+value_column=$2
+header=$3
+
+if [[ -z ${input} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: input file"
+	echo -e "\t\$2: value_column, a number"
+	echo -e "\t\$3: header, T or F"
+	exit 100
+fi
+
+script=$HOME/Program/Custom_tools/statistics_summary.R
+
+if [[ ${header} == "T" ]]; then
+	Rscript ${script} -i ${input} -c ${value_column} -H
+elif [[ ${header} == "F" ]]; then
+	Rscript ${script} -i ${input} -c ${value_column}
+else
+	echo -e "\t\$3: header, T or F only"
+	exit 100
+fi

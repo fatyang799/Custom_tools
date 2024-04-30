@@ -1,0 +1,28 @@
+#!/bin/bash
+# Name: ideas_bw2bedgraph
+
+# manual:
+#   bw file to bedgraph file (200bp bin size and remove blacklist region)
+#
+#   bw2bedgraph bwfile output
+#     - bwfile: the input bw file
+#     - output: the output bedgraph file
+#
+# For example:
+#   ideas_bw2bedgraph H2AFZ.bw H2AFZ.bedgraph
+#
+# Output:
+#   - H2AFZ.bedgraph: the bedgraph file, 200bp bin size without blacklist region
+
+
+bwfile=$1
+output=$2
+
+bigWigAverageOverBed=$HOME/Program/S3V2_IDEAS_ESMP/bin/bigWigAverageOverBed
+w3=$HOME/Genomes/S3V2/Genome_bin/windowsNoBlack.noid.bed
+w4=$HOME/Genomes/S3V2/Genome_bin/windowsNoBlack.withid.bed
+
+${bigWigAverageOverBed} ${bwfile} ${w4} ${bwfile}.tmp
+sort -k1,1n ${bwfile}.tmp | cut -f 5 | paste ${w3} - > ${output}
+
+rm ${bwfile}.tmp

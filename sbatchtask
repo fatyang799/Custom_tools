@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# job name is ${name}
+# the job is submit to n0${node}, you can choose from 1, 2, 4, 4. The 4 is fat node.
+# the target script submit to server
+# give ${core} cores to run parallelly. Default is 1.
+
+name=$1
+node=$2
+script=$3
+core=$4
+
+if [[ -z ${name} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: job name"
+	echo -e "\t\$2: node, n01-n04"
+	echo -e "\t\$3: bash script file"
+	echo -e "\t\$4: thread, default 1"
+	exit 100
+fi
+
+if [[ -z ${core} ]]; then
+	core=1
+fi
+
+if [[ ${node} -eq 1 ]]; then
+	partition=cheng
+elif [[ ${node} -eq 2 ]]; then
+	partition=all
+else
+	partition=yen
+fi
+
+sbatch -c ${core} \
+	-D ./ \
+	-e %N.%j.%x.err \
+	-o %N.%j.%x.out \
+	-p ${partition} \
+	-w n0${node} \
+	-J ${name} ${script}

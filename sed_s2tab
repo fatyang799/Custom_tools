@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# sed_s2tab
+
+input=$1
+
+if [[ -z ${input} ]]; then
+	echo "Usage: transfer space into tab in target file."
+	echo -e "\t\$1: input file."
+	exit 100
+fi
+
+rand=$RANDOM
+tmp=$HOME/tmp/sed/${rand}/
+
+
+sed -r "s/\s+/\t/g" ${input} > ${tmp}/${input}
+mv ${tmp}/${input} ${input}
+
+rm -rf ${tmp}

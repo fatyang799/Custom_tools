@@ -1,0 +1,21 @@
+#!/bin/bash
+
+in_bedgraph=$1
+out_bedgraph=$2
+windows=$3
+
+if [[ -z ${in_bedgraph} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: output of S3V2_IDEAS \${cell}_\${id}.\${mk}.S3V2.bedgraph.NBP.txt file."
+	echo -e "\t\$2: output filename."
+	echo -e "\t\$3: the windows filename, whose file format is bed. default: windowsNoBlack.noid.bed (hg38, binsize=200)"
+	exit 100
+fi
+
+# default setting
+if [[ -z ${windows}  ]]; then
+	windows_root=/share/home/fatyang/Database/S3V2_Genome_windows/1.human/1.hg38/1.bin200
+	windows=${windows_root}/windowsNoBlack.noid.bed
+fi
+
+paste ${windows} ${in_bedgraph} > ${out_bedgraph}

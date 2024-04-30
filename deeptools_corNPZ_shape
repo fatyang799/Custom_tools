@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The input npz file."
+	echo -e "\t\$2: The file recording new name."
+	echo -e "\t\$3: The output filename."
+	exit 100
+fi
+
+npz=$1
+
+script=/share/home/fatyang/Program/Custom_tools/deeptools_corNPZ_shape.py
+python ${script} ${npz}
+

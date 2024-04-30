@@ -1,0 +1,17 @@
+#!/bin/bash
+
+title=$1
+
+if [[ -z ${title} ]]; then
+	echo "Usage: wechat_remind \$MESSAGE"
+	exit 100
+fi
+
+title_rep=$(echo $title | sed 's/ /%20/g')
+content="Please_check"
+appkey=99ead989ec3804f9be06f0887e1d31f9-DV4iCljw
+
+url="https://cx.super4.cn/push_msg?appkey=${appkey}&title=${title_rep}&content=${content}"
+
+wget $url 1>/dev/null 2>&1
+rm push_msg*

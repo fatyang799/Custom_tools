@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# prepare_new_dat
+
+# 每次准备一个当前日期的空白目录，为下次使用
+# 把之前旧的 1.soft_link.sh 和 sample.txt 放到上次日期的目录中
+# 同时将所有运行结果也放入上次日期的目录中
+# 并准备新的sample.txt和sample_group.txt文件，以备程序运行
+# 最后将所有的质控结果修改为 ${上次日期}_qc_summary.txt
+
+
+if [[ -z ${1} ]]; then
+    echo "Usage: prepare_new_dat yes"
+    echo "Must run this command under $HOME/Project/XXX/1.Raw_Data/${data_type}"
+    exit 100
+fi
+
+if [[ $1 == "yes" ]]; then
+	dat=$PWD
+	root=${dat%%/1.Raw_Data*}
+
+	#============ 0.get_setting ============#
+	# date type
+	type=$(basename ${dat})
+	# now date
+	now=$(date "+%Y%m%d")
+	# create new directory for next time
+	mkdir -p ${dat}/${now}
+	# get last date directory (remove today empty directory)
+	old=$(ls -d ${dat}/*/ | xargs basename -a | sort -nr | egrep -v "${now}" | head -n1)
+	#########################################
+
+	#============ 1.get new add sample ============#
+	echo -e "This time new added sample info:"
+	setdiff ${dat}/sample.txt ${dat}/${old}/sample.txt | sed -e "s/^/\t/g"
+	################################################
+
+
+	#============ 2.move old results into old date directory ============#
+	for id in 2.Raw_Qc 3.Trim_Data 4.Trim_Qc 5.Mapping 6.Deeptools
+	do
+			# create old data diectory
+			mkdir -p ${root}/${id}/${type}/${old}
+
+			# move old result into old data diectory
+			ls -d ${root}/${id}/${type}/* | egrep -v "20[0-9]{6}" | xargs -n1 -i mv {} ${root}/${id}/${type}/${old}
+		done
+
+		if [[ $? -eq 0 ]]; then
+			echo -e "\nOld results have been moved into ${old} directory\n"
+		else
+			echo -e "\nSomething wrong when moving old results into ${old} directory, please check\n"
+			exit 100
+		fi
+	######################################################################
+
+	#============ 3.prepare sample.txt and sample_group.txt ============#
+	sample_root=${root}/0.scripts/1.prepare_dat/${type}
+	mkdir -p ${sample_root}/${old}
+	mv ${sample_root}/{sample_group.txt,sample.txt} ${sample_root}/${old}
+	if [[ -f ${sample_root}/readme.txt ]]; then
+		mv ${sample_root}/readme.txt ${sample_root}/${old}
+	fi
+
+	setdiff ${dat}/sample.txt ${dat}/${old}/sample.txt | cut -f 1 | sed "s/_R[R12].fq.gz//g" | sort | uniq -c | sed -r "s/^\s+//g" | sed -r "s/\s+/\t/g" | while read -a id
+	do
+		n=${id[0]}
+		prefix=${id[1]}
+		if [[ $n -eq 2 ]]; then
+			echo -e "${prefix}\tPE"
+		elif [[ $n -eq 1 ]]; then
+			echo -e "${prefix}\tSE"
+		else
+			echo -e "Something wrong about ${prefix}"
+			exit 100
+		fi
+	done > ${sample_root}/sample.txt
+
+	if [[ $? -eq 0 ]]; then
+		echo -e "\nNew sample.txt and sample_group.txt have been done\n"
+	else
+		echo -e "\nSomething wrong when creating new sample.txt and sample_group.txt, please check\n"
+		exit 100
+	fi
+
+	cut -f1 ${sample_root}/sample.txt | cut -d "_" -f2 > ${sample_root}/sample_group.txt
+	#####################################################################
+
+
+	#============ 4.change the name of old qc_summary.txt ============#
+	script_root=${root}/0.scripts/2.basic_process/${type}
+	mv ${script_root}/qc_summary.txt ${script_root}/${old}_qc_summary.txt
+
+	if [[ $? -eq 0 ]]; then
+		echo -e "\nOld qc_summary results have been renamed\n"
+	else
+		echo -e "\nSomething wrong when renaming old qc_summary results, please check\n"
+		exit 100
+	fi
+	######################################################################
+
+	# finish
+	echo -e "\n**********************Done**********************\n"
+fi
+

@@ -1,0 +1,71 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The bwfile (single mode) or '\$bwfile \$output_dir \$sample_label \$thread' for xargs multicore mode."
+	echo -e "\t\$2: The output_dir."
+	echo -e "\t\$3: The sample_label."
+	echo -e "\t\$4: The thread for each single run."
+
+	exit 100
+fi
+
+bwfile=$1
+output_dir=$2
+sample_label=$3
+thread=$4
+gtf=~/Genomes/GENCODE/Human/hg38/gtf/gencode.v40.annotation.gtf
+
+# 2 mode
+n=$(echo ${bwfile} | awk -F " |\t" '{print NF}')
+if [[ $n -eq 4 ]]; then
+	# multiple
+	bwfile=$(echo ${bwfile} | cut -d " " -f1)
+	output_dir=$(echo ${bwfile} | cut -d " " -f2)
+	sample_label=$(echo ${bwfile} | cut -d " " -f3)
+	thread=$(echo ${bwfile} | cut -d " " -f4)
+	echo "multiple mode: $sample_label"
+elif [[ $n -eq 1 ]]; then
+	# single
+	echo "single mode: $sample_label"
+else
+	echo "The \$1 is wrong, please check"
+	exit 100
+fi
+
+# create the directory
+mkdir -p ${output_dir}/{1.raw_data,2.data,3.pic}/{1.TSS,2.Body}
+
+# TSS
+if true; then
+	output=${output_dir}/1.raw_data/1.TSS/${sample_label}_point_tss.gz
+	mat=${output_dir}/2.data/1.TSS/${sample_label}_point_tss.mat
+	pic=${output_dir}/3.pic/1.TSS/${sample_label}_point_tss.png
+	computeMatrix reference-point \
+		--scoreFileName ${bwfile} --regionsFileName ${gtf} \
+		--outFileName ${output} \
+		--samplesLabel ${sample_label} \
+		--binSize 200 -a 2000 -b 2000 \
+		--referencePoint TSS --averageTypeBins median \
+		--numberOfProcessors ${thread} --skipZeros
+	plotProfile -m ${output} \
+		--outFileNameData ${mat} \
+		-out ${pic}
+fi
+
+# body
+if true; then
+	output=${output_dir}/1.raw_data/2.Body/${sample_label}_body.gz
+	mat=${output_dir}/2.data/2.Body/${sample_label}_body.mat
+	pic=${output_dir}/3.pic/2.Body/${sample_label}_body.png
+	computeMatrix scale-regions \
+		--scoreFileName ${bwfile} --regionsFileName ${gtf} \
+		--outFileName ${output} \
+		--samplesLabel ${sample_label} \
+		--binSize 200 -a 2000 -b 2000 -m 5000 \
+		--averageTypeBins median \
+		--numberOfProcessors ${thread} --skipZeros
+	plotProfile -m ${output} \
+		--outFileNameData ${mat} \
+		-out ${pic}
+fi

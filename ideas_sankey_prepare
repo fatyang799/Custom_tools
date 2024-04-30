@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ideas1=$1
+ideas2=$2
+
+paste ${ideas1} ${ideas2} | awk -F ' ' '{print $5"_"$11}' | tail -n+2 | sort | uniq -c | sed 's/^\s*//g' | awk -F"[ _]" -v OFS="\t" '{print $2,$3,$1}' | sort -k1n,1 -k3nr,3 | awk -F"\t" -v OFS="\t" 'BEGIN{print "source","target","value"} {print $0}'

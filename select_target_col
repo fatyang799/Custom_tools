@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# select_target_col
+
+input=$1
+step=$2
+start=$3
+sep=$4
+
+if [[ -z ${input} ]]; then
+	echo "Usage: 从矩阵文件中提取特定列数据，以矩阵形式返回(tab分隔)"
+	echo -e "\t\$1: input, 输入文件"
+	echo -e "\t\$2: step, 间隔步长"
+	echo -e "\t\$3: start, 除以step后余数"
+	echo -e "\t\$4: sep, 间隔符，默认为[tab]"
+
+	exit 100
+fi
+
+
+if [[ -z ${sep} ]]; then
+	awk -F "\t" -v start=${start} -v step=${step} '{for (i=0; i<NF; i++){if(i % step == start) {printf $i"\t"}} printf "\n"}' ${input}
+else
+	awk -F "${sep}" -v start=${start} -v step=${step} '{for (i=0; i<NF; i++){if(i % step == start) {printf $i"\t"}} printf "\n"}' ${input}
+fi
+

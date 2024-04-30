@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# chromhmm_format_as_ideas
+
+input=$1
+location=$2
+
+if [[ -z ${input} ]]; then
+	echo "Usage:"
+	echo -e "\t\$1: Input file, such as H1_40_encode_chromhmm_segments.bed.gz. The file end with .bed.gz"
+	echo -e "\t\$2: The dirctory for IDEAS bed windows file separated by chromsomes"
+	exit 100
+fi
+
+
+prefix=$(echo ${input} | sed "s/.bed.gz$//g")
+bed_file=${prefix}.bed
+
+# 1.转为标准200 binSize bed文件格式
+script=$HOME/Program/Custom_tools/chromHMM_transfer_200bs_bed.sh
+gunzip ${input}
+mv ${bed_file} ${prefix}
+bash ${script} ${prefix} ${bed_file}
+rm ${prefix}
+
+# 2.修改文件坐标
+script=$HOME/Program/Custom_tools/chromhmm_modify_loc.sh
+echo chr{1..22} chr{X,Y} | xargs -n1 | xargs -n1 -i -P 3 \
+	bash ${script} ${bed_file} {} ${location}/{}.txt
+
+# 3.按顺序合并文件
+files=$(tail -n+2 ${location}/order_of_chr.txt | cut -f1 | xargs -n1 -i echo "${bed_file}.{}")
+cat ${files} > ${bed_file}
+rm ${bed_file}.chr*

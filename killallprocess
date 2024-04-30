@@ -1,0 +1,2 @@
+#!/bin/bash
+ps ux | grep -v "USER" | awk -F " " '{if($11!~/^sshd/ && $11!~/^-bash/ && $11!~/sftp-server$/ && $11!~/^ps/ && $11!~/^awk/) {print $2}}' | while read id ; do kill -9 ${id} ; done

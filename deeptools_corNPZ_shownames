@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The input npz file."
+	exit 100
+fi
+
+npz=$1
+
+script=/share/home/fatyang/Program/Custom_tools/deeptools_corNPZ_shownames.py
+python ${script} ${npz}

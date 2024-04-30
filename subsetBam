@@ -1,0 +1,8 @@
+# subsetBam.sh
+
+bam=$1
+number=$2
+output=$3
+
+# command
+(samtools view -H ${bam} ; samtools view ${bam} | head -n ${number}) | samtools view -bS -o ${output} -

@@ -1,0 +1,45 @@
+#!/bin/bash
+
+file=$1
+output=$2
+
+if [[ -z $file ]]; then
+	echo "Usage:"
+	echo -e "\t\$1: input file. It is produeced by bismark_methylation_extractor"
+	echo -e "\t\$2: output M-bias plot file name"
+	exit 100
+fi
+
+# ========================== format file ========================== #
+# separate file
+egrep "context" ${file} | sed "s/ context//g" | sed -r "s/[()]//g" | sed "s/ /_/g" > ${output}.type
+egrep "position" ${file} | sort -u | sed "s/ /_/g" > ${output}.header
+egrep "[0-9]{2,20}" ${file} > ${output}.content
+
+# format
+cat ${output}.header ${output}.content > ${output}.content_all
+all_n=$(cat ${output}.content | wc -l)
+type_n=$(cat ${output}.type | wc -l)
+single_n=$(expr ${all_n} / ${type_n})
+cat ${output}.type | while read id
+do
+	seq 1 ${single_n} | xargs -n1 -i echo ${id}
+done > ${output}.type.txt
+(echo "Type"; cat ${output}.type.txt) > ${output}.type
+paste ${output}.content_all ${output}.type > ${output}.txt
+
+# rm redundent files
+rm ${output}.content* ${output}.type* ${output}.header
+
+# ================================================================= #
+
+
+# ========================== ggplot2 ==========================#
+script=$HOME/Program/Custom_tools/bismark_plot_mbias.R
+Rscript ${script} -i ${output}.txt -o ${output}
+
+rm ${output}.txt
+
+echo "M-bias plot for ${file} has done successfully"
+# =============================================================#
+

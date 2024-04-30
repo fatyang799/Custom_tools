@@ -1,0 +1,1 @@
+watch -n1 sinfo -Nel -o \"%.5P %.5a %.6D %.6t %.5c %.10O %.9m %N\"

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# chromhmm_merge_as_ideas
+
+input_dir=$1
+order=$2
+output=$3
+prefix=$4
+
+if [[ -z ${input_dir} ]]; then
+	echo "Usage:"
+	echo -e "\t\$1: input data directory, where exist the file produced by chromhmm_format_as_ideas. The name of the files are end with .bed"
+	echo -e "\t\$2: the cell order, which must be writed with quote and separated by space, such as 'H1 H9 IMR90'"
+	echo -e "\t\$3: output file name"
+	echo -e "\t\$4: the prefix of all cell specific chromhmm_format_as_ideas output file. If the cell specific files are ${cell}_40_encode_chromhmm_segments.bed, \n\t    then the prefix is 40_encode_chromhmm_segments.bed. Default is the basename of \$3"
+	exit 100
+fi
+
+if [[ -z ${prefix} ]]; then
+	prefix=$(basename ${output})
+fi
+
+files=$(echo "${order}" | tr " " "\n" | xargs -n1 -i echo "${input_dir}/{}_${prefix}")
+
+echo "${order}" | sed -r "s/ |$/_m1 /g" | xargs -n1 -i echo "#ID CHR POSst POSed {}PosClass" > ${output}
+paste ${files} | awk -F "\t" '{for(i=0;i<=NF;i+=1) {if(i == 0) {printf NR" "} else if(i<=3 || i%4==0) {printf "%s ", $i}}; print "0"}' >> ${output}

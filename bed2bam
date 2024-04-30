@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# bed2bam
+
+input_bed=$1
+output_bam=$2
+GENOMESIZES=$3
+gzip=$4
+min_read=$5
+
+
+# usage info
+if [[ -z ${input_bed} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: input_bed, which should have 4 column. The last column means the number of reads in specific region."
+	echo -e "\t\$2: output_bam"
+	echo -e "\t\$3: GENOMESIZES, default $HOME/Program/S3V2_IDEAS_ESMP/genomesize/hg38.chrom.1_22XY.sizes"
+	echo -e "\t\$4: compressed or not. T for compressed, F for uncompressed. Default: F"
+	echo -e "\t\$5: min_read cutoff. 4th column > min_read. Default: 0 (not filter)"
+	exit 100
+fi
+
+if [[ -z ${GENOMESIZES} ]]; then
+	GENOMESIZES=$HOME/Program/S3V2_IDEAS_ESMP/genomesize/hg38.chrom.1_22XY.sizes
+fi
+
+if [[ -z ${gzip} ]]; then
+	gzip=F
+fi
+
+if [[ -z ${min_read} ]]; then
+	min_read=0
+fi
+
+# prepare bed file
+if [[ ${gzip} == T ]]; then
+	zcat ${input_bed} | awk -F "\t" -v OFS="\t" -v cutoff=${min_read} '{if($4 > cutoff) {for(i=1; i<=$4; i++) print $1, $2, $3, "r"NR}}' > ${output_bam}.redundent.bed
+elif [[ ${gzip} == F ]]; then
+	awk -F "\t" -v OFS="\t" -v cutoff=${min_read} '{if($4 > cutoff) {for(i=1; i<=$4; i++) print $1, $2, $3, "r"NR}}' ${input_bed} > ${output_bam}.redundent.bed
+fi
+
+# bed2bam
+bedtools bedtobam -i ${output_bam}.redundent.bed -g ${GENOMESIZES} > ${output_bam}
+rm ${output_bam}.redundent.bed
+
+echo "${input_bed} has been done"

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# cp_scripts
+
+type=$1
+
+if [[ -z ${type} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: type，指定你想进行分析的数据类型，可以选择的有 ATACseq, ChIPseq_histone, ChIPseq_TF, RNAseq, WGBS"
+	exit 100
+fi
+
+if [[ ${type} != "ATACseq" && ${type} != "ChIPseq_histone" && ${type} != "ChIPseq_TF" && ${type} != "RNAseq" && ${type} != "WGBS" ]]; then
+	echo "\$1 must be one of ATACseq, ChIPseq_histone, ChIPseq_TF, RNAseq, WGBS, please check again"
+	exit 100
+fi
+
+cp -P $HOME/Database/Tamplate/4.Pipeline_code/${type}/*sh ./
