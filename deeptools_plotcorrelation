@@ -1,0 +1,77 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The file which record the bigwig files and their labels. "
+	echo -e "\t    An example file (separated by tab) is as follows:"
+	echo -e "\t\t    /PATH/TO/bigwig1 sample1"
+	echo -e "\t\t    /PATH/TO/bigwig2 sample2"
+	echo -e "\t\t    ..."
+	echo -e "\t\$2: The output_dir."
+	echo -e "\t\$3: The bin size, default 200."
+	echo -e "\t\$4: The thread, default 20."
+	echo -e "\t\$5: The png figure width, default 20."
+	echo -e "\t\$6: The png figure height, default 15."
+
+	exit 100
+fi
+
+input=$1
+output=$2
+binsize=$3
+thread=$4
+width=$5
+height=$6
+
+# default setting
+if true; then
+	deeptools_plotcorrelation_R=~/Program/Custom_tools/deeptools_plotcorrelation.R
+
+	if [[ -z ${binsize} ]]; then
+		binsize=200
+	fi
+	if [[ -z ${thread} ]]; then
+		thread=20
+	fi
+	if [[ -z ${width} ]]; then
+		width=20
+	fi
+	if [[ -z ${height} ]]; then
+		height=15
+	fi
+fi
+
+# create the directory
+mkdir -p ${output}/{1.raw_data,2.correlation_data,3.correlation}
+
+# get parameters
+if true; then
+	bw_files=$(cut -f1 ${input} | xargs)
+	labels=$(cut -f2 ${input} | xargs)
+	npz=${output}/1.raw_data/multiBigwigSummary_bs200.npz
+	tab=${output}/1.raw_data/multiBigwigSummary_bs200.tab
+	cor_mat=${output}/2.correlation_data/pearson_correlation_bs200.tab
+	cor_pic=${output}/3.correlation/pearson_correlation_bs200.pdf
+	custom_cor_pic=${output}/3.correlation/pearson_correlation_bs200.png
+fi
+
+# run the program
+if true; then
+	# get matrix
+	multiBigwigSummary bins --bwfiles ${bw_files} \
+		--outFileName ${npz} \
+		--outRawCounts ${tab} \
+		--labels ${labels} \
+		--binSize ${binsize} --numberOfProcessors ${thread}
+	
+	# correlation calculation
+	plotCorrelation --corData ${npz} \
+		--plotFile ${cor_pic} \
+		--outFileCorMatrix ${cor_mat} \
+		--corMethod pearson --whatToPlot heatmap \
+		--skipZeros --colorMap bwr
+
+	# replot correlation
+	Rscript ${deeptools_plotcorrelation_R} -i ${cor_mat} -o ${custom_cor_pic} -w ${width} -H ${height} -u 1 -l -1
+fi
+
