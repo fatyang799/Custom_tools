@@ -20,10 +20,10 @@ gtf=~/Genomes/GENCODE/Human/hg38/gtf/gencode.v40.annotation.gtf
 n=$(echo ${bwfile} | awk -F " |\t" '{print NF}')
 if [[ $n -eq 4 ]]; then
 	# multiple
-	bwfile=$(echo ${bwfile} | cut -d " " -f1)
 	output_dir=$(echo ${bwfile} | cut -d " " -f2)
 	sample_label=$(echo ${bwfile} | cut -d " " -f3)
 	thread=$(echo ${bwfile} | cut -d " " -f4)
+	bwfile=$(echo ${bwfile} | cut -d " " -f1)
 	echo "multiple mode: $sample_label"
 elif [[ $n -eq 1 ]]; then
 	# single
