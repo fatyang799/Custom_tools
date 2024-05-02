@@ -8,10 +8,10 @@ scipt_name=$4
 # 使用说明
 if [[ -z ${url} ]]; then
 	echo "Usage: "
-	echo -e "\t\$1: 你希望将下载fastq文件的实验类型，可以是ChIPseq、RNAseq、ATACseq、DNase、WGBS等，不区分大小写"
+	echo -e "\t\$1: 你希望将下载fastq文件的实验类型，可以是ChIPseq、RNAseq、ATACseq、DNase、WGBS、Annotation等，不区分大小写"
 	echo -e "\t\$2: 输入包含有所有你想要爬取数据的网站，例如 https://www.encodeproject.org/search/?type=Experiment&status=released&biosample_ontology.term_name=H1&target.label=H3K4me3"
-	echo -e "\t\$3: 在下载fastq的脚本中，下载fastq文件保存的路径，并且下载fastq文件的md5值也会保存在此处，如果不写，默认为 ./"
-	echo -e "\t\$4: 下载fastq的脚本名称，如果不写，默认为 download.sh"
+	echo -e "\t\$3: 在下载对应文件（如fastq或者annotation.gz）的脚本中，下载文件保存的路径，并且下载对应文件的md5值也会保存在此处，如果不写，默认为 ./"
+	echo -e "\t\$4: 下载文件的脚本名称，如果不写，默认为 download.sh"
 	exit 100
 fi
 
@@ -29,8 +29,8 @@ function stat_check {
 
 # 脚本检查
 if true; then
-	if [[ ${datatype,,} != "chipseq" && ${datatype,,} != "rnaseq" && ${datatype,,} != "atacseq" && ${datatype,,} != "dnase" && ${datatype,,} != "wgbs" ]]; then
-		echo "The $1 parameter raise error, you can only input ChIPseq, RNAseq, ATACseq DNase or WGBS"
+	if [[ ${datatype,,} != "chipseq" && ${datatype,,} != "rnaseq" && ${datatype,,} != "atacseq" && ${datatype,,} != "dnase" && ${datatype,,} != "wgbs" && ${datatype,,} != "annotation" ]]; then
+		echo "The $1 parameter raise error, you can only input ChIPseq, RNAseq, ATACseq DNase WGBS or Annotation"
 		exit 100
 	fi
 fi
@@ -54,11 +54,15 @@ if true; then
 	python $HOME/Program/Custom_tools/encode/${datatype,,}/2.get_download_info_according_to_ID.py
 	stat_check "step2 successfully done." "step2 raise error."
 
-	python $HOME/Program/Custom_tools/encode/${datatype,,}/3.CT_file_for_Experiment.py
-	stat_check "step3 successfully done." "step3 raise error."
+	if [[ ${datatype,,} != "annotation" ]]; then
+		python $HOME/Program/Custom_tools/encode/${datatype,,}/3.CT_file_for_Experiment.py
+		stat_check "step3 successfully done." "step3 raise error."
 
-	bash $HOME/Program/Custom_tools/encode/${datatype,,}/4.get_download_md5.sh ${output_dir} ${scipt_name}
-	stat_check "step4 successfully done." "step4 raise error."
+		bash $HOME/Program/Custom_tools/encode/${datatype,,}/4.get_download_md5.sh ${output_dir} ${scipt_name}
+		stat_check "step4 successfully done." "step4 raise error."
+	else
+		bash $HOME/Program/Custom_tools/encode/${datatype,,}/3.get_download_md5.sh ${output_dir} ${scipt_name}
+		stat_check "step3 successfully done." "step4 raise error."
+	fi
 fi
-
 
