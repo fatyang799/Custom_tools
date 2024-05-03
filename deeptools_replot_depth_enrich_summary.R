@@ -22,6 +22,7 @@ if (T) {
 # format the data
 if (T) {
   ggdat$Group <- factor(ggdat$Group)
+  ggdat$Sample <- stringr::str_split(ggdat$Sample, "_", simplify = T)[, 3]
 }
 
 # sequence depth
