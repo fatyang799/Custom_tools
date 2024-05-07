@@ -150,5 +150,6 @@ else
 fi
 
 today=$(date "+%Y%m%d")
-rm basename.txt dirname.txt prefix.txt *_R*.fq.gz
+rm basename.txt dirname.txt prefix.txt
+tail -n+2 file_correspondence.txt | cut -f1 | xargs -n1 -i rm {}
 mv summary .${today}_summary
