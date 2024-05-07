@@ -1,0 +1,136 @@
+#!/bin/bash
+
+sample_info_input=$1
+sample_info_output=$2
+
+if [[ -z ${sample_info_input} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The sample info file. An example file (separated by tab) is shown below:"
+	echo -e "\t\tGSM_ID  \${cell}_\${mk}_\${rep}  SRR_ID"
+	echo -e "\t\$2: The corresponging relationship."
+	echo -e "----------------------------------------------"
+	echo -e "The file management: "
+	echo -e "\t\$ tree \${SRR_ID}"
+	echo -e "\t\${SRR_ID}"
+	echo -e "\t├── \${SRR_ID}"
+	echo -e "\t│   └── \${SRR_ID}.sra"
+	echo -e "\t├── \${SRR_ID}_1.fastq.gz"
+	echo -e "\t└── \${SRR_ID}_2.fastq.gz"
+	echo -e "----------------------------------------------"
+
+	exit 100
+fi
+
+if [[ -z ${sample_info_output} ]]; then
+	echo -e "You must provide a filename (\$2) to record file corresponging relationships."
+	exit 100
+fi
+
+rand=${RANDOM}
+tmp=/tmp/fatyang_type_${rand}.txt
+
+echo -e "Target\tSource" > ${sample_info_output}
+cut -f1 ${sample_info_input} | sort -u | while read id
+do
+	n1=$(egrep "${id}" ${sample_info_input} | wc -l)
+
+	if [[ ${n1} -eq 1 ]]; then
+		egrep "${id}" ${sample_info_input} | while read gsm cell_mk_rep srr
+		do
+			ls $PWD/${srr}/${srr}*fastq.gz 1>/dev/null 2>&1
+			if [[ $? -ne 0 ]]; then
+				echo "No fastq.gz files in $PWD/${srr}/, please check."
+				exit 100
+			fi
+
+			n2=$(ls $PWD/${srr}/${srr}*fastq.gz | wc)
+			if [[ ${n2} -eq 1 ]]; then
+				old_r=$PWD/${srr}/${srr}.fastq.gz
+				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
+				echo -e "${new_r}\t${old_r}" >> ${sample_info_output}
+				ln -s ${old_r} ${new_r}
+			elif [[ ${n2} -eq 2 ]]; then
+				old_r1=$PWD/${srr}/${srr}_1.fastq.gz
+				old_r2=$PWD/${srr}/${srr}_2.fastq.gz
+				new_r1=${gsm}_${cell_mk_rep}_R1.fq.gz
+				new_r2=${gsm}_${cell_mk_rep}_R2.fq.gz
+				echo -e "${new_r1}\t${old_r1}" >> ${sample_info_output}
+				echo -e "${new_r2}\t${old_r2}" >> ${sample_info_output}
+				ln -s ${old_r1} ${new_r1}
+				ln -s ${old_r2} ${new_r2}
+			else
+				echo "The number of fastq.gz file is wrong for ${gsm} ${cell_mk_rep} ${srr}, please check."
+				exit 100
+			fi
+		done
+	elif [[ ${n1} -gt 1 ]]; then
+		gsm=${id}
+		cell_mk_rep=$(egrep "${id}" ${sample_info_input} | cut -f 2 | sort -u)
+		# make sure the type of each srr
+		egrep "${id}" ${sample_info_input} | cut -f 3 | while read srr
+		do
+			ls ${srr}/${srr}*fastq.gz | wc -l | sed "s/^/${srr}\t/g"
+		done > ${tmp}
+
+		n3=$(cut -f 2 ${tmp} | sort -u | wc -l)
+		if [[ ${n3} -eq 1 ]]; then
+			# all same run type
+			n4=$(cut -f 2 ${tmp} | sort -u)
+			if [[ ${n4} -eq 1 ]]; then
+				# se
+				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
+				
+				old_rs=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_fastq.gz#g")
+				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r}\t#g" >> ${sample_info_output}
+				zcat ${old_rs} | pigz > ${new_r}
+			elif [[ ${n4} -eq 2 ]]; then
+				# pe
+				new_r1=${gsm}_${cell_mk_rep}_R1.fq.gz
+				new_r2=${gsm}_${cell_mk_rep}_R2.fq.gz
+				
+				old_r1s=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_1.fastq.gz#g")
+				old_r2s=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_2.fastq.gz#g")
+
+				echo "${old_r1s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r1}\t#g" >> ${sample_info_output}
+				echo "${old_r2s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r2}\t#g" >> ${sample_info_output}
+
+				zcat ${old_r1s} | pigz > ${new_r1}
+				zcat ${old_r2s} | pigz > ${new_r2}
+			else
+				echo "The number of fastq.gz file is wrong for ${gsm} ${cell_mk_rep} ${srr}, please check."
+				rm ${tmp}
+				exit 100
+			fi
+		elif [[ ${n3} -eq 2 ]]; then
+			number1=$(cut -f 2 ${tmp} | sort -nu | head -n1)
+			number2=$(cut -f 2 ${tmp} | sort -nu | tail -n1)
+			if [[ ${number1} -eq 1 && ${number2} -eq 2 ]]; then
+				# there are se and pe at same time
+				# se
+				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
+				old_rs=$(awk -F "\t" '{if($2 == 1) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_fastq.gz#g")
+				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r}\t#g" >> ${sample_info_output}
+				zcat ${old_rs} | pigz > ${new_r}
+
+				# pe
+				new_r1=${gsm}_${cell_mk_rep}_R1.fq.gz
+				new_r2=${gsm}_${cell_mk_rep}_R2.fq.gz
+				old_r1s=$(awk -F "\t" '{if($2 == 2) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_1.fastq.gz#g")
+				old_r2s=$(awk -F "\t" '{if($2 == 2) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_2.fastq.gz#g")
+				echo "${old_r1s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r1}\t#g" >> ${sample_info_output}
+				echo "${old_r2s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r2}\t#g" >> ${sample_info_output}
+				zcat ${old_r1s} | pigz > ${new_r1}
+				zcat ${old_r2s} | pigz > ${new_r2}
+			else
+				echo "The number of fastq.gz file is wrong for ${id} ${cell_mk_rep} ${srr}, please check."
+				rm ${tmp}
+				exit 100
+			fi
+		else
+			echo "The number of fastq.gz file is wrong for ${id} ${cell_mk_rep} ${srr}, please check."
+			rm ${tmp}
+			exit 100
+		fi
+	fi
+done
+
