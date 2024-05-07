@@ -43,7 +43,7 @@ do
 				exit 100
 			fi
 
-			n2=$(ls $PWD/${srr}/${srr}*fastq.gz | wc)
+			n2=$(ls $PWD/${srr}/${srr}*fastq.gz | wc -l)
 			if [[ ${n2} -eq 1 ]]; then
 				old_r=$PWD/${srr}/${srr}.fastq.gz
 				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
@@ -81,7 +81,7 @@ do
 				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
 				
 				old_rs=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_fastq.gz#g")
-				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r}\t#g" >> ${sample_info_output}
+				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#${new_r}\t#g" >> ${sample_info_output}
 				zcat ${old_rs} | pigz > ${new_r}
 			elif [[ ${n4} -eq 2 ]]; then
 				# pe
@@ -91,8 +91,8 @@ do
 				old_r1s=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_1.fastq.gz#g")
 				old_r2s=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_2.fastq.gz#g")
 
-				echo "${old_r1s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r1}\t#g" >> ${sample_info_output}
-				echo "${old_r2s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r2}\t#g" >> ${sample_info_output}
+				echo "${old_r1s}" | sed "s/ /\n/g" | sed "s#^#${new_r1}\t#g" >> ${sample_info_output}
+				echo "${old_r2s}" | sed "s/ /\n/g" | sed "s#^#${new_r2}\t#g" >> ${sample_info_output}
 
 				zcat ${old_r1s} | pigz > ${new_r1}
 				zcat ${old_r2s} | pigz > ${new_r2}
@@ -109,7 +109,7 @@ do
 				# se
 				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
 				old_rs=$(awk -F "\t" '{if($2 == 1) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_fastq.gz#g")
-				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r}\t#g" >> ${sample_info_output}
+				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#${new_r}\t#g" >> ${sample_info_output}
 				zcat ${old_rs} | pigz > ${new_r}
 
 				# pe
@@ -117,8 +117,8 @@ do
 				new_r2=${gsm}_${cell_mk_rep}_R2.fq.gz
 				old_r1s=$(awk -F "\t" '{if($2 == 2) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_1.fastq.gz#g")
 				old_r2s=$(awk -F "\t" '{if($2 == 2) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_2.fastq.gz#g")
-				echo "${old_r1s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r1}\t#g" >> ${sample_info_output}
-				echo "${old_r2s}" | sed "s/ /\n/g" | sed "s#^#$PWD/${new_r2}\t#g" >> ${sample_info_output}
+				echo "${old_r1s}" | sed "s/ /\n/g" | sed "s#^#${new_r1}\t#g" >> ${sample_info_output}
+				echo "${old_r2s}" | sed "s/ /\n/g" | sed "s#^#${new_r2}\t#g" >> ${sample_info_output}
 				zcat ${old_r1s} | pigz > ${new_r1}
 				zcat ${old_r2s} | pigz > ${new_r2}
 			else
@@ -134,3 +134,4 @@ do
 	fi
 done
 
+rm ${tmp}
