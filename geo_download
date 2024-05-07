@@ -1,0 +1,69 @@
+#!/bin/bash
+
+id=$1
+output_dir=$2
+thread=$3
+
+if [[ -z $id ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The Download SRR id."
+	echo -e "\t\$1: The OUTPUT directory."
+	echo -e "\t\$1: The thread, default 4."
+
+	exit 100
+fi
+
+# argument check
+if true; then
+	echo $id | egrep -i "^SRR" 1>/dev/null 2>&1
+	if [[ $? -ne 0 ]]; then
+		echo "You must input a SRR ID, please check."
+		exit 100
+	fi
+
+	if [[ -z ${output_dir} ]]; then
+		output_dir=$PWD
+	fi
+
+	if [[ -z ${thread} ]]; then
+		thread=4
+	fi
+fi
+
+# format the arguments
+if true; then
+	now=$PWD
+	cd ${output_dir}
+	output_dir=$PWD
+	cd ${now}
+fi
+
+# download
+if true; then
+	prefetch --max-size 100G -O ${output_dir}/${id} ${id} 1>${output_dir}/${id}.std 2>${output_dir}/${id}.err
+	cond1=$?
+fi
+
+
+# sra 2 fastq
+if true; then
+	egrep "successfully" ${output_dir}/${id}.err 1>/dev/null 2>&1
+	cond2=$?
+
+	if [[ $cond1 -ne 0 || $cond2 -ne 0  ]]; then
+		echo "The downloading process of sra file for ${id} is fail, please check."
+		exit 100
+	fi
+
+	fasterq-dump --qual-defline '+' --seq-defline '@$sn $ac.$si/$ri' --split-3 -e ${thread} -O ${output_dir}/${id} ${output_dir}/${id}/${id}/${id}.sra 1>/dev/null 2>&1
+	if [[ $? -eq 0 ]]; then
+		echo "The ${id} has been successfully download."
+	else
+		echo "The ${id} sra file has been successfully download, but something wrong when converting into fastq file, please check."
+		echo "The sra file locates: ${output_dir}/${id}/${id}"
+		exit 100
+	fi
+
+	pigz ${output_dir}/${id}/${id}*fastq
+fi
+
