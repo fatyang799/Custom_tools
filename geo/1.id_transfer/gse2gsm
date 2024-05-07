@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# 1. gse2gsm
+id=$1
+
+if [[ -z $id ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The GSE ID."
+	exit 100
+fi
+
+echo ${id} | egrep -i "^GSE" 1>/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+	echo "$id is not a GSE ID, please check."
+	exit 100
+fi
+
+
+# environment preparion
+if [[ ${CONDA_DEFAULT_ENV} != "sra" ]]; then
+	eval "$(micromamba shell hook --shell=bash)"
+	micromamba activate sra
+fi
+
+pysradb gse-to-gsm ${id^^}
+

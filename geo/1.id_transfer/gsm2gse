@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# 3. gsm2gse
+id=$1
+
+if [[ -z $id ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The GSM ID."
+	exit 100
+fi
+
+echo ${id} | egrep -i "^GSM" 1>/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+	echo "$id is not a GSM ID, please check."
+	exit 100
+fi
+
+
+# environment preparion
+if [[ ${CONDA_DEFAULT_ENV} != "sra" ]]; then
+	eval "$(micromamba shell hook --shell=bash)"
+	micromamba activate sra
+fi
+
+pysradb gsm-to-gse ${id^^}
+
