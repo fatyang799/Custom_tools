@@ -1,0 +1,113 @@
+#!/bin/bash
+
+id=$1
+
+if [[ -z $id ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The quiry ID, which can be one of GSE/GSM/SRP/SRR."
+	exit 100
+fi
+
+# get id Type
+if true; then
+	function get_id_type {
+		test_id=$1
+
+		echo $test_id | egrep -i "^GSE" 1>/dev/null 2>&1
+		stat1=$?
+
+		echo $test_id | egrep -i "^GSM" 1>/dev/null 2>&1
+		stat2=$?
+
+		echo $test_id | egrep -i "^SRP" 1>/dev/null 2>&1
+		stat3=$?
+
+		echo $test_id | egrep -i "^SRR" 1>/dev/null 2>&1
+		stat4=$?
+
+		if [[ ${stat1} == 0 ]]; then
+			type="GSE"
+		elif [[ ${stat2} == 0 ]]; then
+			type="GSM"
+		elif [[ ${stat3} == 0 ]]; then
+			type="SRP"
+		elif [[ ${stat4} == 0 ]]; then
+			type="SRR"
+		else
+			echo "The $id is not one of GSE/GSM/SRP/SRR, please check."
+			exit 100
+		fi
+		
+		echo "${type}"
+	}
+
+	id_type=$(get_id_type ${id})
+fi
+
+# environment preparion
+if [[ ${CONDA_DEFAULT_ENV} != "sra" ]]; then
+	eval "$(micromamba shell hook --shell=bash)"
+	micromamba activate sra
+fi
+
+rand=$RANDOM
+tmp=/tmp/fatyang_${rand}.txt
+
+# get SRP ID: srp_id
+if true; then
+	if [[ ${id_type} == "GSE" ]]; then
+		gse2srp ${id} > ${tmp}
+		n=$(cat ${tmp} | wc -l)
+		if [[ $n -eq 2 ]]; then
+			srp_id=$(cut -f 2 ${tmp} | tail -n1)
+			rm -rf ${tmp}
+		else
+			echo -e "The number of SRP ID based on ${id} is not 1, please check. You can run the code:\n\tgse2srp ${id}"
+			rm -rf ${tmp}
+			exit 100
+		fi
+	fi
+	
+	if [[ ${id_type} == "GSM" ]]; then
+		gsm2srp ${id} > ${tmp}
+		n=$(cat ${tmp} | wc -l)
+		if [[ $n -eq 2 ]]; then
+			srp_id=$(cut -f 2 ${tmp} | tail -n1)
+			rm -rf ${tmp}
+		else
+			echo -e "The number of SRP ID based on ${id} is not 1, please check. You can run the code:\n\tgsm2srp ${id}"
+			rm -rf ${tmp}
+			exit 100
+		fi
+	fi
+	
+	if [[ ${id_type} == "SRP" ]]; then
+		srp_id=${id}
+	fi
+	
+	if [[ ${id_type} == "SRR" ]]; then
+		srr2srp ${id} > ${tmp}
+		n=$(cat ${tmp} | wc -l)
+		if [[ $n -eq 2 ]]; then
+			srp_id=$(cut -f 2 ${tmp} | tail -n1)
+			rm -rf ${tmp}
+		else
+			echo -e "The number of SRP ID based on ${id} is not 1, please check. You can run the code:\n\tsrr2srp ${id}"
+			rm -rf ${tmp}
+			exit 100
+		fi
+	fi
+fi
+
+# get metadata info
+if true; then
+	pysradb metadata --desc --detailed ${srp_id} --saveto ${tmp}
+	if [[ $? -ne 0 ]]; then
+		echo -e "Something wrong when get metadata info by pysradb, you can run the code to check:\n\tpysradb metadata --desc ${srp_id} --saveto ${tmp}"
+		rm -rf ${tmp}
+		exit 100
+	fi
+	nr=$(head -n1 ${tmp} | tr "\t" "\n" | nl | sed -r "s/^\s+//g" | sed -r "s/\s+/\t/g" | egrep "study_accession|study_title|experiment_title|run_accession" | cut -f1 | xargs | sed "s/ /,/g")
+	cut -f ${nr} ${tmp} | sed "s/\t/,/g" | sed "s/\s/_/g" | sed "s/,/\t/g" | column -t
+	rm -rf ${tmp}
+fi
