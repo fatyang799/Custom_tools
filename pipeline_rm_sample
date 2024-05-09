@@ -1,0 +1,241 @@
+#!/bin/bash
+
+# pipeline_rm_sample
+
+rm_sample=$1
+proj=$2
+type=$3
+sub=$4
+
+# manual
+if [[ -z ${rm_sample} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: A file, which record all to be removed sample prefix. [Format \${cell}_\${mk}_\${rep}], such as cd34_H3K79me2_rep1"
+	echo -e "\t\$2: Project root, such as ~/Project/13.CD34_Human."
+	echo -e "\t\$3: Project type, such as 1.histone_chip."
+	echo -e "\t\$4: Remove data from sub-directory. You need specify the number to remove sub-directory. Multiple number are separated by [,]. Default: 1,2,3,4,5,6,7"
+	echo -e "\t\tThe meaning of number is shown below:"
+	echo -e "\t\t1) 1.Raw_Data"
+	echo -e "\t\t2) 2.Raw_Qc"
+	echo -e "\t\t3) 3.Trim_Data"
+	echo -e "\t\t4) 4.Trim_Qc"
+	echo -e "\t\t5) 5.Mapping"
+	echo -e "\t\t6) 6.Deeptools"
+	echo -e "\t\t7) log"
+
+	exit 100
+fi
+
+# check the arguments
+if true; then
+	function check_arg {
+		test=$1
+		mess=$2
+		if [[ -z ${test} ]]; then
+			echo -e "${mess}"
+			exit 100
+		fi
+	}
+	function check_num {
+		input_test=$1
+		target_num=$2
+		echo ${input_test} | sed "s/,/\n/g" | egrep "${target_num}" 1>/dev/null 2>&1
+		if [[ $? -eq 0 ]]; then
+			echo T
+		else
+			echo F
+		fi
+	}
+
+	check_arg proj "You must input \$2 to tell program the Project root."
+	check_arg type "You must input \$3 to tell program the Project type."
+
+	if [[ -z ${sub} ]]; then
+		sub="1,2,3,4,5,6,7"
+	fi
+fi
+
+
+# define function
+### rm_file
+### rm_dir
+### file_rm_line
+if true; then
+	function rm_file {
+		fl=$1
+		if [[ -f ${fl} ]]; then
+			rm ${fl}
+		else
+			echo "${fl} do not exist."
+		fi
+	}
+	function rm_dir {
+		dr=$1
+		if [[ -d ${dr} ]]; then
+			rm -r ${dr}
+		else
+			echo "${dr} do not exist."
+		fi
+	}
+	function file_rm_line {
+		fl=$1
+		pattern=$2
+		if [[ -f ${fl} ]]; then
+			egrep -v "${pattern}" ${fl} > ${fl}.tmp.tmp
+			mv ${fl}.tmp.tmp ${fl}
+		else
+			echo "${fl} do not exist."
+		fi
+	}
+fi
+
+# get pattern
+if true; then
+	pat=$(cat ${rm_sample} | xargs | sed "s/ /|/g")
+	sample_info=${proj}/0.scripts/1.prepare_dat/${type}/sample.txt
+	rm_sample_info=${sample_info}.tmp
+fi
+
+# 0.scripts/1.prepare_dat/${type}
+if true; then
+	egrep "${pat}" ${sample_info} > ${rm_sample_info}
+	n=$(cat ${rm_sample_info} | wc -l)
+	if [[ $n -eq 0 ]]; then
+		echo "There are no record in ${sample_info}, please check."
+		cat ${rm_sample}
+		exit 100
+	fi
+	file_rm_line ${sample_info} "${pat}"
+fi
+
+# 1.Raw_Data/${type}
+torf=$(check_num ${sub} 1)
+if [[ ${torf} == "T" ]]; then
+	cat ${rm_sample_info} | \
+		awk -F "\t" '{if($2 == "PE") {printf $1"_R1.fq.gz\n"$1"_R2.fq.gz\n"} else if ($2 == "SE") {printf $1"_RR.fq.gz\n"}}' | \
+		sed "s#^#${proj}/1.Raw_Data/${type}/#g" | \
+		while read id; do rm_file ${id}; done
+fi
+
+# 2.Raw_Qc/${type}
+torf=$(check_num ${sub} 2)
+if [[ ${torf} == "T" ]]; then
+	# 1.fastqc
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf $1"_R1_fastqc.zip\n"$1"_R2_fastqc.zip\n"$1"_R1_fastqc.html\n"$1"_R2_fastqc.html\n"} else if ($2 == "SE") {printf $1"_RR_fastqc.html\n"$1"_RR_fastqc.zip\n"}}' | \
+		sed "s#^#${proj}/2.Raw_Qc/${type}/1.fastqc/#g" | \
+		while read id; do rm_file ${id}; done
+
+	# 3.seqkit
+	file_rm_line ${proj}/2.Raw_Qc/${type}/3.seqkit/fastq.stat.txt "${pat}"
+fi
+
+# 3.Trim_Data/${type}
+torf=$(check_num ${sub} 3)
+if [[ ${torf} == "T" ]]; then
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf $1"_PE.fastp.html\n"$1"_PE.fastp.json\n"$1"_R1.fq.gz\n"$1"_R2.fq.gz\n"} else if ($2 == "SE") {printf $1"_RR.fq.gz\n"$1"_SE.fastp.html\n"$1"_SE.fastp.json\n"}}' | \
+		sed "s#^#${proj}/3.Trim_Data/${type}/#g" | \
+		while read id; do rm_file ${id}; done
+fi
+
+# 4.Trim_Qc/${type}
+torf=$(check_num ${sub} 4)
+if [[ ${torf} == "T" ]]; then
+	# 1.fastqc
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf $1"_R1_fastqc.zip\n"$1"_R2_fastqc.zip\n"$1"_R1_fastqc.html\n"$1"_R2_fastqc.html\n"} else if ($2 == "SE") {printf $1"_RR_fastqc.html\n"$1"_RR_fastqc.zip\n"}}' | \
+		sed "s#^#${proj}/4.Trim_Qc/${type}/1.fastqc/#g" | \
+		while read id; do rm_file ${id}; done
+
+	# 3.seqkit
+	file_rm_line ${proj}/4.Trim_Qc/${type}/3.seqkit/fastq.stat.txt "${pat}"
+fi
+
+# 5.Mapping/${type}
+torf=$(check_num ${sub} 5)
+if [[ ${torf} == "T" ]]; then
+	# rm FILEs
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf "1.sorted_bam/"$1"_PE.markdup.bam\n""1.sorted_bam/"$1"_PE.markdup.metrics\n""1.sorted_bam/"$1"_PE.sorted.bam\n""1.sorted_bam/"$1"_PE.sorted.bam.bai\n""2.filter_bam/"$1"_PE.filter.bam\n""3.rmBL_bam/"$1"_PE.bam\n""3.rmBL_bam/"$1"_PE.bam.bai\n""4.statistics_bam/"$1"_PE.stat\n"} else if ($2 == "SE") {printf "1.sorted_bam/"$1"_SE.markdup.bam\n""1.sorted_bam/"$1"_SE.markdup.metrics\n""1.sorted_bam/"$1"_SE.sorted.bam\n""1.sorted_bam/"$1"_SE.sorted.bam.bai\n""2.filter_bam/"$1"_SE.filter.bam\n""3.rmBL_bam/"$1"_SE.bam\n""3.rmBL_bam/"$1"_SE.bam.bai\n""4.statistics_bam/"$1"_SE.stat\n"}}' | \
+		sed "s#^#${proj}/5.Mapping/${type}/#g" | \
+		while read id; do rm_file ${id}; done
+
+	# rm DIRs
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf "5.QC/1.qualimap/"$1"_PE\n6.saturation/"$1"_PE\n"} else if ($2 == "SE") {printf "5.QC/1.qualimap/"$1"_SE\n6.saturation/"$1"_SE\n"}}' | \
+		sed "s#^#${proj}/5.Mapping/${type}/#g" | \
+		while read id; do rm_dir ${id}; done
+fi
+
+# 6.Deeptools/${type}
+torf=$(check_num ${sub} 6)
+if [[ ${torf} == "T" ]]; then
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf "1.bigwig/"$1"_PE.bw\n2.bedgraph/"$1"_PE.bedgraph.gz\n4.plot_profile/1.raw_data/1.TSS/"$1"_PE_point_tss.gz\n4.plot_profile/1.raw_data/2.Body/"$1"_PE_body.gz\n4.plot_profile/2.data/1.TSS/"$1"_PE_point_tss.mat\n4.plot_profile/2.data/2.Body/"$1"_PE_body.mat\n4.plot_profile/3.pic/1.TSS/"$1"_PE_point_tss.png\n4.plot_profile/3.pic/2.Body/"$1"_PE_body.png\n5.enrichment/1.data/"$1"_PE_with0.metrics\n5.enrichment/2.pic/"$1"_PE_with0.png\n"} else if ($2 == "SE") {printf "1.bigwig/"$1"_SE.bw\n2.bedgraph/"$1"_SE.bedgraph.gz\n4.plot_profile/1.raw_data/1.TSS/"$1"_SE_point_tss.gz\n4.plot_profile/1.raw_data/2.Body/"$1"_SE_body.gz\n4.plot_profile/2.data/1.TSS/"$1"_SE_point_tss.mat\n4.plot_profile/2.data/2.Body/"$1"_SE_body.mat\n4.plot_profile/3.pic/1.TSS/"$1"_SE_point_tss.png\n4.plot_profile/3.pic/2.Body/"$1"_SE_body.png\n5.enrichment/1.data/"$1"_SE_with0.metrics\n5.enrichment/2.pic/"$1"_SE_with0.png\n"}}' | \
+		sed "s#^#${proj}/6.Deeptools/${type}/#g" | \
+		while read id; do rm_file ${id}; done
+	# 3.plot_correlation/1.raw_data/NPZ
+	ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.npz 1>/dev/null 2>&1
+	if [[ $? -eq 0 ]]; then
+		n=$(ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.npz)
+		if [[ $n -eq 1 ]]; then
+			npz=$(ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.npz)
+			deeptools_corNPZ_shownames ${npz} > ${rm_sample_info}.all_cor_sample.txt
+			egrep -vf ${rm_sample} ${rm_sample_info}.all_cor_sample.txt > ${rm_sample_info}.remain_cor_sample.txt
+			deeptools_corNPZ_split ${npz} ${rm_sample_info}.remain_cor_sample.txt ${npz}.remain
+			mv ${npz}.remain ${npz}
+			rm ${rm_sample_info}.all_cor_sample.txt ${rm_sample_info}.remain_cor_sample.txt
+		else
+			echo "--------------------------------------------------"
+			echo "There are more then 1 correlation NPZ files:"
+			ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.npz
+			echo "Please check"
+			echo "--------------------------------------------------"
+		fi
+	fi
+	# 3.plot_correlation/1.raw_data/TAB
+	ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.tab 1>/dev/null 2>&1
+	if [[ $? -eq 0 ]]; then
+		n=$(ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.tab)
+		if [[ $n -eq 1 ]]; then
+			tab=$(ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.tab)
+			remain_fileds=$(head -n1 ${tab} | tr "\t" "\n" | nl | sed -r "s/^\s+//g" | egrep -vf ${rm_sample} | cut -f1 | xargs | sed "s/ /,/g")
+			cut -f ${remain_fileds} ${tab} > ${tab}.remain
+			mv ${tab}.remain ${tab}
+		else
+			echo "--------------------------------------------------"
+			echo "There are more then 1 correlation TAB files:"
+			ls ${proj}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/multiBigwigSummary_bs*.tab
+			echo "Please check"
+			echo "--------------------------------------------------"
+		fi
+	fi
+fi
+
+# log/${type}
+torf=$(check_num ${sub} 7)
+if [[ ${torf} == "T" ]]; then
+	# All
+	cut -f1 ${rm_sample_info} | while read id
+	do 
+		rm_file ${proj}/log/${type}/3.Trim_Data/${id}.err
+		rm_file ${proj}/log/${type}/3.Trim_Data/${id}.std
+		rm_file ${proj}/log/${type}/5.Mapping/2.sam2bam/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/2.sam2bam/${id}.std
+		rm_file ${proj}/log/${type}/5.Mapping/3.sort_bam/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/3.sort_bam/${id}.std
+		rm_file ${proj}/log/${type}/5.Mapping/4.index_sort_bam/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/4.index_sort_bam/${id}.std
+		rm_file ${proj}/log/${type}/5.Mapping/5.picard_markdup/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/5.picard_markdup/${id}.std
+		rm_file ${proj}/log/${type}/5.Mapping/7.rm_blacklist/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/8.index_bam_rmBL/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/8.index_bam_rmBL/${id}.std
+		rm_file ${proj}/log/${type}/5.Mapping/9.bam_flagstat/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/11.qualimap_bamqc/${id}.err
+		rm_file ${proj}/log/${type}/5.Mapping/11.qualimap_bamqc/${id}.std
+	done
+
+	# SE and PE
+	cat ${rm_sample_info} | awk -F "\t" '{if($2 == "PE") {printf "5.Mapping/1.mapping_PE/"$1".err\n5.Mapping/1.mapping_PE/"$1".std\n5.Mapping/6.filter_bam_PE/"$1".err\n5.Mapping/6.filter_bam_PE/"$1".std\n5.Mapping/13.saturation_PE/"$1".err\n5.Mapping/13.saturation_PE/"$1".std\n"} else if ($2 == "SE") {printf "5.Mapping/1.mapping_SE/"$1".err\n5.Mapping/1.mapping_SE/"$1".std\n5.Mapping/6.filter_bam_SE/"$1".err\n5.Mapping/6.filter_bam_SE/"$1".std\n5.Mapping/13.saturation_SE/"$1".err\n5.Mapping/13.saturation_SE/"$1".std\n"}}' | \
+		sed "s#^#${proj}/log/${type}//#g" | \
+		while read id; do rm_file ${id}; done
+fi
+
+echo "Done, all related files have been deleted."
+rm -rf ${rm_sample_info}
