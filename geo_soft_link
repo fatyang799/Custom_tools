@@ -7,7 +7,7 @@ if [[ -z ${sample_info_input} ]]; then
 	echo "Usage: "
 	echo -e "\t\$1: The sample info file. An example file (separated by tab) is shown below:"
 	echo -e "\t\tGSM_ID  \${cell}_\${mk}_\${rep}  SRR_ID"
-	echo -e "\t\$2: The corresponging relationship."
+	echo -e "\t\$2: The output filename, where corresponging relationship."
 	echo -e "----------------------------------------------"
 	echo -e "The file management: "
 	echo -e "\t\$ tree \${SRR_ID}"
@@ -134,4 +134,4 @@ do
 	fi
 done
 
-rm ${tmp}
+rm -rf ${tmp}
