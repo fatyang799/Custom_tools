@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# pipeline_check_results
+
+root=$1
+type=$2
+
+# manual
+if [[ -z ${root} ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: Project root, such as ~/Project/13.CD34_Human."
+	echo -e "\t\$2: Project type, such as 1.histone_chip."
+
+	exit 100
+fi
+
+sample=${root}/0.scripts/1.prepare_dat/${type}/sample.txt
+
+# the number of sample and files
+if true; then
+	sp=$(cat ${sample} | wc -l)
+	fq=$(awk -F "\t" 'BEGIN{sum=0} {if($2=="PE"){sum=sum+2} else if($2=="SE"){sum=sum+1}} END{print sum}' ${sample})
+fi
+
+function check {
+	egrep -v "skip|success" $1
+}
+
+function check_num {
+	tar_num=$1
+	test_num=$2
+	process=$3
+	additional_num=$4
+	same_mess=$5
+	not_same_mess=$6
+	if [[ ${process} == "p" ]]; then
+		test_num=$(expr ${test_num} + ${additional_num})
+	fi
+	if [[ ${process} == "m" ]]; then
+		test_num=$(expr ${test_num} - ${additional_num})
+	fi
+	if [[ ${test_num} -eq ${tar_num} ]]; then
+		echo "${same_mess}"
+	else
+		echo "${not_same_mess}"
+	fi
+}
+
+# 0.scripts:
+if false; then
+	cd ${root}/0.scripts/2.basic_process/${type}
+	lh -S n*
+	rm *err
+	check no4.std
+	cd ${root}/5.Mapping/${type}/1.sorted_bam
+	ls *std | while read id; do n=$(check ${id} | wc -l); if [[ $n -gt 0 ]]; then echo $id; check ${id}; fi; done
+
+	rm *std
+fi
+
+# 2.Raw_Qc: 
+if true; then
+	n=$(ls ${root}/2.Raw_Qc/${type}/1.fastqc/*.zip | wc -l)
+	check_num ${fq} $n p 0 "2.Raw_Qc/1.fastqc: zip yes" "2.Raw_Qc/1.fastqc: zip no"
+
+	n=$(ls ${root}/2.Raw_Qc/${type}/1.fastqc/*.html | wc -l)
+	check_num ${fq} $n p 0 "2.Raw_Qc/1.fastqc: html yes" "2.Raw_Qc/1.fastqc: html no"
+	
+	n=$(cat ${root}/2.Raw_Qc/${type}/2.multiqc/raw_qc_data/multiqc_general_stats.txt | wc -l)
+	check_num ${fq} $n m 1 "2.Raw_Qc/2.multiqc: yes" "2.Raw_Qc/2.multiqc: no"
+
+	n=$(cat ${root}/2.Raw_Qc/${type}/3.seqkit/fastq.stat.txt | wc -l)
+	check_num ${fq} $n m 1 "2.Raw_Qc/3.seqkit: yes" "2.Raw_Qc/3.seqkit: no"
+fi
+
+# 3.Trim_Data:
+if true; then
+	n=$(ls ${root}/3.Trim_Data/${type}/*gz | wc -l)
+	check_num ${fq} $n p 0 "3.Trim_Data: fq.gz yes" "2.Raw_Qc/1.fastqc: fq.gz no"
+
+	n=$(cat ${root}/3.Trim_Data/${type}/multiqc/file.txt | wc -l)
+	check_num ${sp} $n m 1 "3.Trim_Data: multiqc file.txt yes" "2.Raw_Qc/1.fastqc: multiqc file.txt no"
+
+	n=$(cat ${root}/3.Trim_Data/${type}/multiqc/fastp_trim_data/multiqc_general_stats.txt | wc -l)
+	check_num ${sp} $n m 1 "3.Trim_Data: multiqc multiqc_general_stats yes" "2.Raw_Qc/1.fastqc: multiqc multiqc_general_stats no"
+fi
+
+# 4.Trim_Qc: 
+if true; then
+	n=$(ls ${root}/4.Trim_Qc/${type}/1.fastqc/*.zip | wc -l)
+	check_num ${fq} $n p 0 "4.Trim_Qc/1.fastqc: zip yes" "4.Trim_Qc/1.fastqc: zip no"
+
+	n=$(ls ${root}/4.Trim_Qc/${type}/1.fastqc/*.html | wc -l)
+	check_num ${fq} $n p 0 "4.Trim_Qc/1.fastqc: html yes" "4.Trim_Qc/1.fastqc: html no"
+	
+	n=$(cat ${root}/4.Trim_Qc/${type}/2.multiqc/trim_qc_data/multiqc_general_stats.txt | wc -l)
+	check_num ${fq} $n m 1 "4.Trim_Qc/2.multiqc: yes" "4.Trim_Qc/2.multiqc: no"
+
+	n=$(cat ${root}/4.Trim_Qc/${type}/3.seqkit/fastq.stat.txt | wc -l)
+	check_num ${fq} $n m 1 "4.Trim_Qc/3.seqkit: yes" "4.Trim_Qc/3.seqkit: no"
+fi
+
+# 5.Mapping:
+if true; then
+	# 5.1
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/1.sorted_bam/*markdup.bam | wc -l)
+		check_num ${sp} $n p 0 "1.sorted_bam/*markdup.bam: yes" "1.sorted_bam/*markdup.bam: no"
+
+		n=$(ls ${root}/5.Mapping/${type}/1.sorted_bam/*markdup.metrics | wc -l)
+		check_num ${sp} $n p 0 "1.sorted_bam/*markdup.metrics: yes" "1.sorted_bam/*markdup.metrics: no"
+
+		n=$(ls ${root}/5.Mapping/${type}/1.sorted_bam/*sorted.bam | wc -l)
+		check_num ${sp} $n p 0 "1.sorted_bam/*sorted.bam: yes" "1.sorted_bam/*sorted.bam: no"
+
+		n=$(ls ${root}/5.Mapping/${type}/1.sorted_bam/*sorted.bam.bai | wc -l)
+		check_num ${sp} $n p 0 "1.sorted_bam/*sorted.bam.bai: yes" "1.sorted_bam/*sorted.bam.bai: no"
+	fi
+
+	# 5.2
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/2.filter_bam/*bam | wc -l)
+		check_num ${sp} $n p 0 "2.filter_bam/*bam: yes" "2.filter_bam/*bam: no"
+	fi
+
+	# 5.3
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/3.rmBL_bam/*bam | wc -l)
+		check_num ${sp} $n p 0 "3.rmBL_bam/*bam: yes" "3.rmBL_bam/*bam: no"
+
+		n=$(ls ${root}/5.Mapping/${type}/3.rmBL_bam/*bam.bai | wc -l)
+		check_num ${sp} $n p 0 "3.rmBL_bam/*bam.bai: yes" "3.rmBL_bam/*bam.bai: no"
+	fi
+
+	# 5.4 
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/4.statistics_bam/*stat | wc -l)
+		check_num ${sp} $n p 0 "4.statistics_bam/*stat: yes" "4.statistics_bam/*stat: no"
+
+		n=$(cat ${root}/5.Mapping/${type}/4.statistics_bam/multiqc/flagstat_data/multiqc_general_stats.txt | wc -l)
+		check_num ${sp} $n m 1 "4.statistics_bam/multiqc: yes" "4.statistics_bam/multiqc: no"
+	fi
+
+	# 5.5
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/5.QC/1.qualimap | wc -l)
+		check_num ${sp} $n p 0 "5.QC/1.qualimap: yes" "5.QC/1.qualimap: no"
+
+		n=$(cat ${root}/5.Mapping/${type}/5.QC/2.multiqc/bamqc_data/multiqc_general_stats.txt | wc -l)
+		check_num ${sp} $n m 1 "5.QC/bamqc: yes" "5.QC/bamqc: no"
+
+		n=$(cat ${root}/5.Mapping/${type}/5.QC/3.picard/multiqc_picard_data/multiqc_general_stats.txt | wc -l)
+		check_num ${sp} $n m 1 "5.QC/3.picard: yes" "5.QC/3.picard: no"
+	fi
+
+	# 5.6
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/6.saturation | wc -l)
+		check_num ${sp} $n p 0 "6.saturation: yes" "6.saturation: no"
+	fi
+fi
+
+# 6.Deeptools:
+if true; then
+	# 6.1
+	if true; then
+		n=$(ls ${root}/5.Mapping/${type}/1.sorted_bam/*markdup.bam | wc -l)
+		check_num ${sp} $n p 0 "1.sorted_bam/*markdup.bam: yes" "1.sorted_bam/*markdup.bam: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/1.bigwig/*bw | wc -l)
+		check_num ${sp} $n p 0 "1.bigwig/*bw: yes" "1.bigwig/*bw: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/1.bigwig/cpm/*bw | wc -l)
+		check_num ${sp} $n p 0 "1.bigwig/cpm/*bw: yes" "1.bigwig/cpm/*bw: no"
+	fi
+
+	# 6.2
+	if true; then
+		n=$(ls ${root}/6.Deeptools/${type}/2.bedgraph/*gz | wc -l)
+		check_num ${sp} $n p 0 "2.bedgraph/*gz: yes" "2.bedgraph/*gz: no"
+	fi
+
+	# 6.3
+	if true; then
+		tree ${root}/6.Deeptools/${type}/3.plot_correlation
+		n=$(deeptools_corNPZ_shownames ${root}/6.Deeptools/${type}/3.plot_correlation/1.raw_data/*npz | wc -l)
+		check_num ${sp} $n p 0 "3.plot_correlation: yes" "3.plot_correlation: no, the number of cor sample is ${n}"
+	fi
+
+	# 6.4
+	if true; then
+		n=$(ls ${root}/6.Deeptools/${type}/4.plot_profile/**/*point_tss.gz | wc -l)
+		check_num ${sp} $n p 0 "4.plot_profile/**/*point_tss.gz: yes" "4.plot_profile/**/*point_tss.gz: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/4.plot_profile/**/*body.gz | wc -l)
+		check_num ${sp} $n p 0 "4.plot_profile/**/*body.gz: yes" "4.plot_profile/**/*body.gz: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/4.plot_profile/**/*point_tss.mat | wc -l)
+		check_num ${sp} $n p 0 "4.plot_profile/**/*point_tss.mat: yes" "4.plot_profile/**/*point_tss.mat: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/4.plot_profile/**/*body.mat | wc -l)
+		check_num ${sp} $n p 0 "4.plot_profile/**/*body.mat: yes" "4.plot_profile/**/*body.mat: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/4.plot_profile/**/*point_tss.png | wc -l)
+		check_num ${sp} $n p 0 "4.plot_profile/**/*point_tss.png: yes" "4.plot_profile/**/*point_tss.png: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/4.plot_profile/**/*body.png | wc -l)
+		check_num ${sp} $n p 0 "4.plot_profile/**/*body.png: yes" "4.plot_profile/**/*body.png: no"
+	fi
+
+	# 6.5
+	if true; then
+		n=$(ls ${root}/6.Deeptools/${type}/5.enrichment/1.data/*.metrics | wc -l)
+		check_num ${sp} $n p 0 "5.enrichment/1.data/*.metrics: yes" "5.enrichment/1.data/*.metrics: no"
+
+		n=$(ls ${root}/6.Deeptools/${type}/5.enrichment/2.pic/ | wc -l)
+		check_num ${sp} $n p 0 "5.enrichment/2.pic/: yes" "5.enrichment/2.pic/: no"
+	fi
+fi
+
