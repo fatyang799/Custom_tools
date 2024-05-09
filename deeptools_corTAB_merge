@@ -3,9 +3,9 @@
 if [[ -z $1 ]]; then
 	echo "Usage: "
 	echo -e "\t\$1: The input tab file1."
-	echo -e "\t\$2: The order of input tab file1, such as \"chr8_0_200\""
+	echo -e "\t\$2: The order of input tab file1 **with header**, such as \"line1: #'chr'_'start'_'end'\tline2:chr8_0_200\""
 	echo -e "\t\$3: The input tab file2."
-	echo -e "\t\$4: The order of input tab file2, such as \"chr8_0_200\""
+	echo -e "\t\$4: The order of input tab file2 **with header**, such as \"line1: #'chr'_'start'_'end'\tline2:chr3_0_200\""
 	echo -e "\t\$5: The output merged tab filename."
 	echo -e "\t\$6: The bed location of output merged tab."
 
