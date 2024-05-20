@@ -163,6 +163,7 @@ if (T) {
           }
           if (is.data.frame(sub_dat)) {
             sub_dat <- sub_dat[apply(sub_dat, 1, sum)!=0, ]
+			sub_dat <- na.omit(sub_dat)
             cor_dat <- cor(sub_dat)
           }
           return(cor_dat)

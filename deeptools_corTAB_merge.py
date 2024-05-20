@@ -47,7 +47,7 @@ if True:
 
 # output the matrix
 if True:
-	merge_dat.to_csv(output_tab, sep="\t", header=False, index=False)
+	merge_dat.to_csv(output_tab, sep="\t", header=False, index=False, na_rep="nan")
 
 # output the sorted location
 if True:

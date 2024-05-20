@@ -129,6 +129,7 @@ if (T) {
 
 # merge figure
 if (T) {
+  pdf(NULL)
   p3 <- as.ggplot(p1)
   
   p4 <- ggdraw(p3) +
