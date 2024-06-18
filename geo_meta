@@ -107,7 +107,7 @@ if true; then
 		rm -rf ${tmp}
 		exit 100
 	fi
-	nr=$(head -n1 ${tmp} | tr "\t" "\n" | nl | sed -r "s/^\s+//g" | sed -r "s/\s+/\t/g" | egrep "study_accession|study_title|experiment_title|run_accession" | cut -f1 | xargs | sed "s/ /,/g")
-	cut -f ${nr} ${tmp} | sed "s/\t/,/g" | sed "s/\s/_/g" | sed "s/,/\t/g" | column -t
+	nr=$(head -n1 ${tmp} | sed "s/ /_/g" | tr "\t" "\n" | nl | sed -r "s/^\s+//g" | sed -r "s/\s+/\t/g" | egrep "study_accession|study_title|experiment_title|run_accession|treatment|chip_antibody|cell_line|genotype\/variation|source_name|cell_line" | cut -f1 | xargs | sed "s/ /,/g")
+	sed "s/ /_/g" ${tmp} | cut -f ${nr} | column -t
 	rm -rf ${tmp}
 fi
