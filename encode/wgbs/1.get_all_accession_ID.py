@@ -5,7 +5,7 @@ if True:
 	import urllib.request
 	import sys
 
-# 输入你搜索后的网页，举例：https://www.encodeproject.org/search/?type=Experiment&status=released&biosample_ontology.term_name=K562&assay_title=WGBS
+# 输入你搜索后的网页，举例：https://www.encodeproject.org/search/?type=Experiment&control_type%21=%2A&assay_title=Histone+ChIP-seq
 url = str(sys.argv[1])
 
 # 输出文件名
