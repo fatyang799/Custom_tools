@@ -1,26 +1,14 @@
 #!/bin/bash
 
-# Manual
-#   print difference set, file1-file2
-#
-# Usage:
-#   setdiff file1 file2
-#
-# Options:
-#   - file1/2: the input fiile, which has only one column.
-#
-# Output:
-#   print stdout on the screen the difference between two sets
-
-file1=$1
-file2=$2
-
-if [[ -z ${file1} ]]; then
-	echo "Usage: result=reference-target"
-	echo -e "\t\$1: The reference file"
-	echo -e "\t\$2: The target file"
+if [[ -z $1 ]]; then
+	echo "Usage: get the unique results of File1: File1-File2"
+	echo -e "\t\$1: File1"
+	echo -e "\t\$2: File2"
 
 	exit 100
 fi
+
+file1=$1
+file2=$2
 
 sort ${file1} ${file2} ${file2} | uniq -u
