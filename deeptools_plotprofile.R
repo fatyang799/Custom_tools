@@ -174,9 +174,9 @@ if (T) {
                        breaks = value,
                        labels = names(value)) +
       # level from 0
-      scale_y_continuous(name = "",
+      scale_y_continuous(name = NULL,
                          limits = c(0,NA)) +
-      ylab(label = "")+
+      ylab(label = NULL)+
       theme(legend.position = "none",
             axis.title = element_text(size = rel(1.2), face="bold"),
             axis.text = element_text(size = rel(1.2), face="bold"),
