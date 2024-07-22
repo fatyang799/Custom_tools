@@ -103,6 +103,8 @@ if (T) {
   })
 }
 
+pdf(NULL)
+
 # get upsetR plot
 if (T) {
   p1 <- upset(fromList(overlap), nsets = 4, mb.ratio = c(0.7, 0.3),
@@ -129,7 +131,6 @@ if (T) {
 
 # merge figure
 if (T) {
-  pdf(NULL)
   p3 <- as.ggplot(p1)
   
   p4 <- ggdraw(p3) +
