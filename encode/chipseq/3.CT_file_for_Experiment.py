@@ -67,6 +67,7 @@ def get_Control_info_from_ENCODE(id):
 		Biological_replicate = []
 		Technical_replicate = []
 		Experiment_info = []
+		Lab = []
 	# 循环爬取信息
 	if True:
 		files = biosample['files']
@@ -180,6 +181,11 @@ def get_Control_info_from_ENCODE(id):
 				else:
 					result = fid + "_" + control_type + "_rep" + rep + "_RR.fq.gz"
 				File_name.append(result)
+				# Lab
+				result = file["lab"]["title"]
+				result = result.replace(", ", ";")
+				result = result.replace(" ", "_")
+				Lab.append(result)
 	# 结果汇总整理
 	if True:
 		results = {}
@@ -197,6 +203,7 @@ def get_Control_info_from_ENCODE(id):
 		results['Biological_replicate'] = Biological_replicate
 		results['Technical_replicate'] = Technical_replicate
 		results['Experiment_info'] = Experiment_info
+		results['Lab'] = Lab
 	# 返回结果
 	return (results)
 
@@ -219,3 +226,4 @@ if len(ct)>0:
 	data.to_csv(output, index=False)
 else:
 	a = os.system("touch " + output)
+
