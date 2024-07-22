@@ -1,0 +1,64 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The input matrix of dat, such as 'multiBigwigSummary_bs200.tab'"
+	echo -e "\t\$2: file_group, a file which records group of each sample."
+	echo -e "\t\$3: output_dir [ default: $PWD ]."
+	echo -e "\t\$4: The maximum value of cor [ default: 1 ]."
+	echo -e "\t\$5: The minimum value of cor [ default: -1 ]."
+	echo -e "\t\$6: fullpath of deeptools_plotcorrelation_by_rawMatrix.R script [ default: ~/Program/Custom_tools/deeptools_plotcorrelation_by_rawMatrix.R ]."
+	echo
+	echo -e "The output results will be: "
+	echo -e "\t\${output_dir}/paired_cor.rds"
+	echo -e "\t\${output_dir}/multi_c.log"
+	echo -e "\t\${output_dir}/pic/\${label}.paired_cor_rm0.png"
+	echo -e "\t\${output_dir}/tab/\${label}.paired_cor_rm0.mat"
+
+	exit 100
+fi
+
+# get arguments
+if true; then
+	input=$1
+	file_group=$2
+	output_dir=$3
+	upper=$4
+	lower=$5
+	deeptools_plotcorrelation_by_rawMatrix_R=$6
+
+	if [[ -z ${output_dir} ]]; then
+		output_dir=$PWD
+	fi
+	if [[ -z ${upper} ]]; then
+		upper=1
+	fi
+	if [[ -z ${lower} ]]; then
+		lower=-1
+	fi
+	if [[ -z ${deeptools_plotcorrelation_by_rawMatrix_R} ]]; then
+		deeptools_plotcorrelation_by_rawMatrix_R=$HOME/Program/Custom_tools/deeptools_plotcorrelation_by_rawMatrix.R
+	fi
+fi
+
+mkdir -p ${output_dir}
+
+# replot correlation #
+if [[ -f ${output_dir}/paired_cor.rds ]]; then
+	rm ${output_dir}/paired_cor.rds ${output_dir}/multi_c.log
+fi
+
+Rscript ${deeptools_plotcorrelation_by_rawMatrix_R} \
+	-i ${input} \
+	-g ${file_group} \
+	-o ${output_dir} \
+	-u ${upper} \
+	-l ${lower} \
+	-n
+
+if [[ $? -eq 0 ]]; then
+	echo "replot_group_correlation_between_bigwig_files success"
+else
+	echo "replot_group_correlation_between_bigwig_files fail"
+	exit 100
+fi
