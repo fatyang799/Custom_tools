@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: 删除文件，移动到回收站"
+	echo -e "\t\$1: files or directory"	
+
+	exit 100
+fi
+
+mv -f $@ ~/.Recycle_bin/

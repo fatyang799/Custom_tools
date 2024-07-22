@@ -1,0 +1,7 @@
+#!/bin/bash
+
+read -p "Clear Recycle_bin? [y/n] " confirm
+
+if [[ ${confirm,,} == 'y' ]]; then
+	rm -rf ~/.Recycle_bin/*
+fi
