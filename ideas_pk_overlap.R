@@ -87,7 +87,13 @@ if (T) {
 # get all content
 if (T) {
   dat <- lapply(files, function(x) {
-    data.table::fread(x, header = F, data.table = F)[, 1]
+    data <- data.table::fread(x, header = F, data.table = F)
+    if (nrow(data) == 0) {
+      data <- "zero"
+    } else {
+      data <- data[, 1]
+    }
+    return(data)
   })
   names(dat) <- labels
 }
@@ -96,8 +102,16 @@ if (T) {
 if (T) {
   stat <- lapply(labels, function(id1) {
     id1_len <- length(dat[[id1]])
+    if (id1_len == 1) {
+      if (dat[[id1]] == "zero") {
+        id1_len <- 0
+      }
+    }
     lapply(labels, function(id2) {
       over_len <- length(intersect(dat[[id1]], dat[[id2]]))
+      if (id1_len == 0) {
+        over_len <- 0
+      }
       c(id1, id2, over_len, id1_len)
     })
   })
@@ -130,6 +144,9 @@ if (T) {
     ggdat <- dcast(dat, id1~id2, value.var = "over_len")
     rownames(ggdat) <- ggdat[, 1]
     ggdat <- ggdat[, -1]
+
+    ggdat <- ggdat[labels, ]
+    ggdat <- ggdat[, labels]
   }
   
   # file pk number
@@ -149,6 +166,7 @@ if (T) {
       row_ggdat <- t(apply(row_ggdat, 1, function(x) {
         as.numeric(x[-length(x)])/as.numeric(x[length(x)])
       }))
+      row_ggdat[is.na(row_ggdat)] <- 0
       row_ggdat <- data.frame(row_ggdat)
       colnames(row_ggdat) <- rownames(row_ggdat)
       
@@ -162,6 +180,7 @@ if (T) {
       col_ggdat <- sapply(col_ggdat, function(x) {
         as.numeric(x[-length(x)])/as.numeric(x[length(x)])
       })
+      col_ggdat[is.na(col_ggdat)] <- 0
       col_ggdat <- data.frame(col_ggdat)
       rownames(col_ggdat) <- colnames(col_ggdat)
       
