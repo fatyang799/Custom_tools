@@ -60,6 +60,8 @@ def get_Experiment_info_from_ENCODE(id):
 		Antibody_host = []
 		Antibody_url = []
 		Experiment_info = []
+		Lab = []
+		CT_ID = []
 	# 循环爬取信息
 	if True:
 		files = biosample['files']
@@ -225,6 +227,17 @@ def get_Experiment_info_from_ENCODE(id):
 				else:
 					result = fid + "_" + target_protein + "_rep" + rep + "_RR.fq.gz"
 				File_name.append(result)
+				# Lab
+				result = file["lab"]["title"]
+				result = result.replace(", ", ";")
+				result = result.replace(" ", "_")
+				Lab.append(result)
+				# CT_ID
+				result = [x.split("/")[2] for x in file["controlled_by"]]
+				result = ";".join(result)
+				if len(result) == 0:
+					result = "NA"
+				CT_ID.append(result)
 	# 结果汇总整理
 	if True:
 		results = {}
@@ -248,6 +261,8 @@ def get_Experiment_info_from_ENCODE(id):
 		results['Antibody_host'] = Antibody_host
 		results['Antibody_url'] = Antibody_url
 		results['Experiment_info'] = Experiment_info
+		results['Lab'] = Lab
+		results['CT_ID'] = CT_ID
 	# 返回结果
 	return (results)
 
@@ -265,3 +280,4 @@ if True:
 # 信息导出
 if True:
 	data.to_csv(output, index=False)
+
