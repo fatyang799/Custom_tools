@@ -114,7 +114,7 @@ if [[ ${confirm} == "y" ]]; then
 		now_rep=$(expr ${max} + 1)
 
 		if [[ ${num} -eq 1 ]]; then
-			old_rr=$(ls ${path}/${prefix}*)
+			old_rr=$(ls ${path}/${prefix}* | egrep "RR.fa?s?t?q.gz")
 			new_rr=${proj}/${cell_format}_${mk}_rep${now_rep}_RR.fq.gz
 			echo -e "${new_rr}\t${old_rr}"
 			touch ${new_rr}
@@ -128,7 +128,7 @@ if [[ ${confirm} == "y" ]]; then
 			echo -e "${new_r2}\t${old_r2}"
 			touch ${new_r1} ${new_r2}
 		elif [[ ${num} -eq 3 ]]; then
-			old_rr=$(ls ${path}/${prefix}*)
+			old_rr=$(ls ${path}/${prefix}* | egrep "RR.fa?s?t?q.gz")
 			new_rr=${proj}/${cell_format}_${mk}_rep${now_rep}_RR.fq.gz
 			
 			old_r1=$(ls ${path}/${prefix}* | egrep "R?1.fa?s?t?q.gz")
