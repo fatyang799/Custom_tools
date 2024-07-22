@@ -1,0 +1,111 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: file_list, a file which records fullpath of all bigwig files."
+	echo -e "\t\$2: file_group, a file which records labels of all bigwig files."
+	echo -e "\t\$3: type, 'TSS' or 'Body'."
+	echo -e "\t\$4: output_dir [ default: $PWD ]."
+	echo -e "\t\$5: ncol for ggplot facet [ default: 4 ]."
+	echo -e "\t\$6: width for plot [ default: 18 ]."
+	echo -e "\t\$7: height for plot [ default: 14 ]."
+	echo -e "\t\$8: fullpath of deeptools_plotprofile.R script [ default: ~/Program/Custom_tools/deeptools_plotprofile.R1 ]."
+	echo
+	echo -e "The output results will be: "
+	echo -e "\t\${output_dir}/TSS_freeY.png"
+	echo -e "\t\${output_dir}/TSS_fixedY.png"
+	echo -e "\t\${output_dir}/Body_freeY.png"
+	echo -e "\t\${output_dir}/Body_fixedY.png"
+	exit 100
+fi
+
+# get arguments
+if true; then
+	file_list=$1
+	file_group=$2
+	type=$3
+	output_dir=$4
+	ncol=$5
+	width=$6
+	height=$7
+	deeptools_plotprofile_R=$8
+
+	if [[ -z ${output_dir} ]]; then
+		output_dir=$PWD
+	fi
+	if [[ -z ${ncol} ]]; then
+		ncol=4
+	fi
+	if [[ -z ${width} ]]; then
+		width=18
+	fi
+	if [[ -z ${height} ]]; then
+		height=14
+	fi
+	if [[ -z ${deeptools_plotprofile_R} ]]; then
+		deeptools_plotprofile_R=$HOME/Program/Custom_tools/deeptools_plotprofile.R1
+	fi
+fi
+
+mkdir -p ${output_dir}
+
+##### TSS #####
+if [[ $type == "TSS" ]]; then
+	#statements
+	freey=${output_dir}/TSS_freeY.png
+	fixedy=${output_dir}/TSS_fixedY.png
+
+	Rscript ${deeptools_plotprofile_R} \
+		-i ${file_list} \
+		-g ${file_group} \
+		-o ${fixedy} \
+		--ncol ${ncol} \
+		-t -w ${width} -H ${height}
+	res1=$?
+
+	Rscript ${deeptools_plotprofile_R} \
+		-i ${file_list} \
+		-g ${file_group} \
+		-o ${freey} \
+		--ncol ${ncol} \
+		-t -f -w ${width} -H ${height}
+	res2=$?
+
+	if [[ $res1 -eq 0 && res2 -eq 0 ]]; then
+		echo "replot_profile_bigwig_files TSS success"
+	else
+		echo "replot_profile_bigwig_files TSS fail"
+		exit 100
+	fi
+fi
+###############
+
+##### Body #####
+if [[ $type == "Body" ]]; then
+	freey=${output_dir}/Body_freeY.png
+	fixedy=${output_dir}/Body_fixedY.png
+
+	Rscript ${deeptools_plotprofile_R} \
+		-i ${file_list} \
+		-g ${file_group} \
+		-o ${fixedy} \
+		--ncol ${ncol} \
+		-w ${width} -H ${height}
+	res1=$?
+
+	Rscript ${deeptools_plotprofile_R} \
+		-i ${file_list} \
+		-g ${file_group} \
+		-o ${freey} \
+		--ncol ${ncol} \
+		-f -w ${width} -H ${height}
+	res2=$?
+
+	if [[ $res1 -eq 0 && res2 -eq 0 ]]; then
+		echo "replot_profile_bigwig_files Body success"
+	else
+		echo "replot_profile_bigwig_files Body fail"
+		exit 100
+	fi
+fi
+###############
