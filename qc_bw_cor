@@ -1,0 +1,105 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: sample_info, a file which records fullpath of all bigwig files."
+	echo -e "\t\$2: sample_label, a file which records labels of all bigwig files."
+	echo -e "\t\$3: output_dir [ default: $PWD ]."
+	echo -e "\t\$4: log_dir [ default: $PWD ]."
+	echo -e "\t\$5: threads [ default: 4 ]."
+	echo -e "\t\$6: binsize [ default: 200 ]."
+	echo -e "\t\$7: skip_done [ default: F ]."
+	echo 
+	echo -e "The output results will be: "
+	echo -e "\t\${output_dir}/1.raw_data/multiBigwigSummary_bs\${binsize}.npz"
+	echo -e "\t\${output_dir}/2.correlation_data/pearson_correlation_bs\${binsize}.tab"
+	echo -e "\t\${output_dir}/3.correlation/pearson_correlation_bs\${binsize}.pdf"
+	exit 100
+fi
+
+# get arguments
+if true; then
+	sample_info=$1
+	sample_label=$2
+	output_dir=$3
+	log_root=$4
+	threads=$5
+	binsize=$6
+	skip_done=$7
+
+	if [[ -z ${output_dir} ]]; then
+		output_dir=$PWD
+	fi
+	if [[ -z ${log_dir} ]]; then
+		log_dir=$PWD
+	fi
+	if [[ -z ${threads} ]]; then
+		threads=4
+	fi
+	if [[ -z ${binsize} ]]; then
+		binsize=200
+	fi
+	if [[ -z ${skip_done} ]]; then
+		skip_done=F
+	fi
+fi
+
+# 1.multiBigwigSummary: will skip
+if true; then
+	################ all correlation ################
+	mkdir -p ${output_dir}/{1.raw_data,2.correlation_data,3.correlation} ${log_root}
+
+	npz=${output_dir}/1.raw_data/multiBigwigSummary_bs${binsize}.npz
+	tab=${output_dir}/1.raw_data/multiBigwigSummary_bs${binsize}.tab
+	std=${log_root}/multiBigwigSummary_bs${binsize}.std
+	err=${log_root}/multiBigwigSummary_bs${binsize}.err
+
+	if [[ ${skip_done} == "T" && -f ${npz} && -f ${tab} ]]; then
+		# get undo sample target
+		echo "skip multiBigwigSummary"
+	else
+		# define new files
+		bw_files=$(cat ${sample_info} | xargs)
+		labels=$(cat ${sample_label} | xargs)
+		# calculation
+		multiBigwigSummary bins --bwfiles ${bw_files} \
+			--outFileName ${npz} \
+			--outRawCounts ${tab} \
+			--labels ${labels} \
+			--binSize ${binsize} --numberOfProcessors ${threads} 1>${std} 2>${err}
+	fi
+	#===============================================#
+
+	if [[ $? -eq 0 ]]; then
+		echo "multiBigwigSummary success"
+	else
+		echo "multiBigwigSummary fail, program wrong"
+		exit 100
+	fi
+fi
+
+# 2.plotCorrelation: never skip
+if true; then
+	################ all correlation ################
+	npz=${output_dir}/1.raw_data/multiBigwigSummary_bs${binsize}.npz
+	cor_mat=${output_dir}/2.correlation_data/pearson_correlation_bs${binsize}.tab
+	cor_pic=${output_dir}/3.correlation/pearson_correlation_bs${binsize}.pdf
+
+	std=${log_root}/plotCorrelation_bs${binsize}.std
+	err=${log_root}/plotCorrelation_bs${binsize}.err
+
+	plotCorrelation --corData ${npz} \
+		--plotFile ${cor_pic} \
+		--outFileCorMatrix ${cor_mat} \
+		--corMethod pearson --whatToPlot heatmap \
+		--skipZeros --colorMap bwr 1>${std} 2>${err}
+
+	if [[ $? -eq 0 ]]; then
+		echo "plotCorrelation success"
+	else
+		echo "plotCorrelation fail, program wrong"
+		exit 100
+	fi
+	#===============================================#
+fi
+
