@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: the overlap of file1 and file2"
+	echo -e "\t\$1: File1"
+	echo -e "\t\$2: File2"
+
+	exit 100
+fi
+
+file1=$1
+file2=$2
+
+sort ${file1} ${file2} | uniq -d
