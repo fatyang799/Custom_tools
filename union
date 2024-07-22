@@ -1,16 +1,12 @@
 #!/bin/bash
 
-# Manual
-#       print difference set
-#
-# Usage:
-#       setdiff file1 file2
-#
-# Options:
-#       - file1/2: the input fiile, which has only one column.
-#
-# Output:
-#       print stdout on the screen the difference between two sets
+if [[ -z $1 ]]; then
+	echo "Usage: get the all unique results of File1+File2: unique(File1-File2)"
+	echo -e "\t\$1: File1"
+	echo -e "\t\$2: File2"
+
+	exit 100
+fi
 
 file1=$1
 file2=$2
