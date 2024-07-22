@@ -1,0 +1,107 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: metadata, "
+	echo -e "\t\$2: output_dir [ default: $PWD ]."
+	echo -e "\t\$3: threads [ default: 4 ]."
+	echo -e "\t\$4: species [ default: hg38 ]."
+	echo -e "\t\$5: width for plot [ default: 20 ]."
+	echo -e "\t\$6: height for plot [ default: 15 ]."
+	echo -e "\t\$7: binsize [ default: 200 ]."
+	echo
+	echo -e "The output results will be: "
+	echo -e "\t\${output_dir}/1.windows/{windows.bed,windowsNoBlack.noid.bed,windowsNoBlack.withid.bed}"
+	echo -e "\t\${output_dir}/{\${cell}_\${mk}_\${id}.pk.id,\${cell}.\${mk}.\${id}.ip.idsort.bedgraph.gz}"
+	echo -e "\t\${output_dir}/2.statistics/{1.file_group.txt,1.file.txt,2.pk_overlap.png,2.pk_overlap.rds}"
+
+	exit 100
+fi
+
+# get arguments
+if true; then
+	metadata=$1
+	output_dir=$2
+	threads=$3
+	species=$4
+	width=$5
+	height=$6
+	binsize=$7
+
+	if [[ -z ${output_dir} ]]; then
+		output_dir=$PWD
+	fi
+	if [[ -z ${threads} ]]; then
+		threads=4
+	fi
+	if [[ -z ${species} ]]; then
+		species=hg38
+	fi
+	if [[ -z ${width} ]]; then
+		width=20
+	fi
+	if [[ -z ${height} ]]; then
+		height=15
+	fi
+	if [[ -z ${binsize} ]]; then
+		binsize=200
+	fi
+	
+	script=~/Program/Custom_tools/ideas_get_peaks.R
+	heatmap=~/Program/Custom_tools/ideas_pk_overlap.R
+fi
+
+# define some functions
+function check_stat {
+	if [[ $? -ne 0 ]]; then
+		echo "$1"
+		bash -c "$2"
+		exit 100
+	fi
+}
+
+# bigwig -> bedGraph
+if true; then
+	# 1. get windows
+	genomeWindows -o ${output_dir}/1.windows -b ${binsize} -s ${species}
+	check_stat "There are something wrong (custom_pk_overlap: 2), please check." "echo 'genomeWindows raise error'"
+
+	# bigWig2bedGraph
+	bigWig2bedGraph -w ${output_dir}/1.windows -m ${metadata} -o ${output_dir} -p ${threads} -z
+	check_stat "There are something wrong (custom_pk_overlap: 2), please check." "rm ${output_dir}/*.bedgraph.gz"
+	rm ${output_dir}/*.ctrl.idsort.bedgraph.gz
+fi
+
+# call peaks with zscale
+if true; then
+	# call peaks
+	cut -f 1-3 ${metadata} | sed "s/\t/./g" | sed "s#^#${output_dir}/#g" | sed "s/\$/.ip.idsort.bedgraph.gz/g" | xargs -n1 -i -P ${threads} Rscript ${script} -i {} -c 4 -f 0.05 -l -o {}.tmp
+	check_stat "There are something wrong (custom_pk_overlap: 3), please check." "echo 'Call peak wrong'"
+	
+	# rename
+	cut -f 1-3 ${metadata} | sed "s/\t/./g" | sed "s#^#${output_dir}/#g" | sed "s/\$/.ip.idsort.bedgraph.gz.tmp/g" | while read fullpath
+	do
+		file=$(basename ${fullpath})
+		cell=$(echo ${file} | cut -d "." -f1)
+		mk=$(echo ${file} | cut -d "." -f2)
+		id=$(echo ${file} | cut -d "." -f3)
+		new=${cell}_${mk}_${id}.pk.id
+		mv ${fullpath} ${output_dir}/${new}
+	done
+	check_stat "There are something wrong (custom_pk_overlap: 4), please check." "echo 'Change name of pk id files wrong'"
+fi
+
+# statistics
+if true; then
+	mkdir -p ${output_dir}/2.statistics
+
+	cut -f 1-3 ${metadata} | sed "s/\t/_/g" | sed "s#^#${output_dir}/#g" | sed "s/\$/.pk.id/g" > ${output_dir}/2.statistics/1.file.txt
+	cat ${output_dir}/2.statistics/1.file.txt | xargs basename -a | sed "s/.pk.id//g" > ${output_dir}/2.statistics/1.file_group.txt
+	
+	Rscript ${heatmap} -i ${output_dir}/2.statistics/1.file.txt \
+		-l ${output_dir}/2.statistics/1.file_group.txt \
+		-o ${output_dir}/2.statistics/2.pk_overlap.png \
+		-O ${output_dir}/2.statistics/2.pk_overlap.rds \
+		-s "row" -w ${width} -H ${height}
+	check_stat "There are something wrong (custom_pk_overlap: 5), please check." "echo 'The ideas_pk_overlap.R wrong'"
+fi
