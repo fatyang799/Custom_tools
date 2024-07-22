@@ -80,7 +80,7 @@ do
 				# se
 				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
 				
-				old_rs=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_fastq.gz#g")
+				old_rs=$(awk -F "\t" '{print $1"/"$1}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#.fastq.gz#g")
 				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#${new_r}\t#g" >> ${sample_info_output}
 				zcat ${old_rs} | pigz > ${new_r}
 			elif [[ ${n4} -eq 2 ]]; then
@@ -108,7 +108,7 @@ do
 				# there are se and pe at same time
 				# se
 				new_r=${gsm}_${cell_mk_rep}_RR.fq.gz
-				old_rs=$(awk -F "\t" '{if($2 == 1) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#_fastq.gz#g")
+				old_rs=$(awk -F "\t" '{if($2 == 1) {print $1}}' ${tmp} | sed "s#^#$PWD/#g" | sed "s#\$#.fastq.gz#g")
 				echo "${old_rs}" | sed "s/ /\n/g" | sed "s#^#${new_r}\t#g" >> ${sample_info_output}
 				zcat ${old_rs} | pigz > ${new_r}
 
