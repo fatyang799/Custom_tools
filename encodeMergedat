@@ -7,10 +7,41 @@ exp_id=$4
 
 if [[ -z ${meta} ]]; then
 	echo "Usage: "
-	echo -e "\t\$1: meta file, 来自python爬虫所得。\n\t\t1.文件地址的上2级目录应该是fastq数据所在。\n\t\t2.column1：Experiment ID\n\t\t3.column3：File basename\n\t\t4.column11：marker\n\t\t5.column14：rep"
+	echo -e "\t\$1: meta file, 来自python爬虫所得。\n\t\t1.文件地址的上2级目录应该是fastq数据所在。\n\t\t2.column1: Experiment ID\n\t\t3.column3: File basename\n\t\t4.column11: marker\n\t\t5.column14: rep"
 	echo -e "\t\$2: cell，用于重命名文件"
 	echo -e "\t\$3: output_dir，输出目录"
 	echo -e "\t\$4: exp_id，需要对哪些实验ID进行合并，默认为meta file中的全部实验ID"
+	echo -e "\t-h: 给出脚本书写逻辑"
+	exit 100
+fi
+
+# logic for script
+if [[ $1 == "-h" ]]; then
+	echo 'The logic for script:
+	(0) 格式化的meta文件要求: 
+		1> column1: Experiment ID
+		2> column3: File basename
+		3> column11: marker
+		4> column14: rep
+	(1)  以Experiment ID为单位 ($id, column1)，检测每个Experiment ID下有多少技术重复 ($rep, column14)
+	(2)  以每个技术重复为单位，找出每个技术重复下有哪些文件 (记录在${id}_rep${rep}.txt中, column3)
+	(3)  通过替换文件末尾的fq.gz等结尾，统计每个文件是SE还是PE (${id}_rep${rep}_mode.txt)
+	(4)  因为在合并数据时，同一个文件如果同时有SE和PE数据，需要将SE和PE数据分别进行合并，故统计SE以及PE文
+		件的数目 (2行2列数据, num mode)，根据统计结果进行循环处理:
+		1> if (num == 1): 只有一个文件，故直接使用软链接处理即可
+			1>> if (mode == 1): SE数据
+			2>> if (mode == 2): PE数据
+			3>> if (mode == 3): SE + PE数据
+		2> if (num != 1): 有多个文件，使用zcat | pigz进行合并文件
+			1>> if (mode == 1): SE数据
+			2>> if (mode == 2): PE数据
+			3>> if (mode == 3): SE + PE数据
+	(5) 关于新旧文件名的命名:
+		1> 旧文件名：根据column3中所得
+		2> 新文件名：
+			SE: mergedExpID_cell_mk_rep1_1_RR.fq.gz
+			PE: mergedExpID_cell_mk_rep1_1_R1.fq.gz
+			    mergedExpID_cell_mk_rep1_1_R1.fq.gz'
 	exit 100
 fi
 
