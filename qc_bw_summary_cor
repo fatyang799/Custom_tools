@@ -1,0 +1,57 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: The input matrix of correlation, such as 'pearson_correlation_bs200.tab'"
+	echo -e "\t\$2: The output filename."
+	echo -e "\t\$3: width for plot [ default: 20 ]."
+	echo -e "\t\$4: height for plot [ default: 15 ]."
+	echo -e "\t\$5: The maximum value of cor [ default: 1 ]."
+	echo -e "\t\$6: The minimum value of cor [ default: -1 ]."
+	echo -e "\t\$7: fullpath of deeptools_plotcorrelation.R script [ default: ~/Program/Custom_tools/deeptools_plotcorrelation.R ]."
+
+	exit 100
+fi
+
+# get arguments
+if true; then
+	input=$1
+	output=$2
+	width=$3
+	height=$4
+	upper=$5
+	lower=$6
+	deeptools_plotcorrelation_R=$7
+
+	if [[ -z ${width} ]]; then
+		width=20
+	fi
+	if [[ -z ${height} ]]; then
+		height=15
+	fi
+	if [[ -z ${upper} ]]; then
+		upper=1
+	fi
+	if [[ -z ${lower} ]]; then
+		lower=-1
+	fi
+	if [[ -z ${deeptools_plotcorrelation_R} ]]; then
+		deeptools_plotcorrelation_R=$HOME/Program/Custom_tools/deeptools_plotcorrelation.R
+	fi
+fi
+
+
+mkdir -p $(dirname ${output})
+Rscript ${deeptools_plotcorrelation_R} \
+	-i ${input} \
+	-o ${output} \
+	-w ${width} -H ${height} \
+	-u ${upper} \
+	-l ${lower}
+
+if [[ $? -eq 0 ]]; then
+	echo "replot_correlation_between_bigwig_files with R success"
+else
+	echo "replot_correlation_between_bigwig_files with R fail"
+	exit 100
+fi
