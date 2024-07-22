@@ -1,0 +1,176 @@
+#!/bin/bash
+
+if [[ -z $1 ]]; then
+	echo "Usage: "
+	echo -e "\t\$1: sample_label, a lable for bigwig file."
+	echo -e "\t\$2: bwfile, a bigwig file fullpath."
+	echo -e "\t\$3: type, 'TSS' or 'Body'."
+	echo -e "\t\$4: gtf [ default: $HOME/Genomes/GENCODE/Human/hg38/gtf/gencode.v40.annotation.gtf ]."
+	echo -e "\t\$5: binsize [ default: 200 ]."
+	echo -e "\t\$6: upstream [ default: 2000 ]."
+	echo -e "\t\$7: downstream [ default: 2000 ]."
+	echo -e "\t\$8: threads [ default: 4 ]."
+	echo -e "\t\$9: output_dir [ default: $PWD ]."
+	echo -e "\t\$10: log_root [ default: $PWD ]."
+	echo -e "\t\$11: regionBodyLength [ default: 5000 ]."
+	echo -e "\t\$12: skip_done [ default: F ]."
+	echo
+	echo -e "The output results will be: "
+	echo -e "\t\${output_dir}/1.raw_data/1.TSS/\${sample_label}_point_tss.gz"
+	echo -e "\t\${output_dir}/2.data/1.TSS/\${sample_label}_point_tss.mat"
+	echo -e "\t\${output_dir}/3.pic/1.TSS/\${sample_label}_point_tss.png"
+	echo -e "\t\${output_dir}/1.raw_data/2.Body/\${sample_label}_body.gz"
+	echo -e "\t\${output_dir}/2.data/2.Body/\${sample_label}_body.mat"
+	echo -e "\t\${output_dir}/3.pic/2.Body/\${sample_label}_body.png"
+	exit 100
+fi
+
+# get arguments
+if true; then
+	sample_label=$1
+	bwfile=$2
+	type=$3
+	gtf=$4
+	binsize=$5
+	upstream=$6
+	downstream=$7
+	threads=$8
+	output_dir=$9
+	log_root=${10}
+	regionBodyLength=${11}
+	skip_done=${12}
+
+	if [[ -z ${gtf} ]]; then
+		gtf=$HOME/Genomes/GENCODE/Human/hg38/gtf/gencode.v40.annotation.gtf
+	fi
+	if [[ -z ${binsize} ]]; then
+		binsize=200
+	fi
+	if [[ -z ${upstream} ]]; then
+		upstream=2000
+	fi
+	if [[ -z ${downstream} ]]; then
+		downstream=2000
+	fi
+	if [[ -z ${threads} ]]; then
+		threads=4
+	fi
+	if [[ -z ${output_dir} ]]; then
+		output_dir=$PWD
+	fi
+	if [[ -z ${log_root} ]]; then
+		log_root=$PWD
+	fi
+	if [[ -z ${regionBodyLength} ]]; then
+		regionBodyLength=5000
+	fi
+	if [[ -z ${skip_done} ]]; then
+		skip_done=F
+	fi
+fi
+
+if [[ ${type} == "TSS" ]]; then
+	################ 1.computeMatrix ################
+	output=${output_dir}/1.raw_data/1.TSS/${sample_label}_point_tss.gz
+	mkdir -p $(dirname ${output}) ${log_root}
+
+	std=${log_root}/${sample_label}_computeMatrix_tss.std
+	err=${log_root}/${sample_label}_computeMatrix_tss.err
+
+	if [[ ${skip_done} == "T" && -f ${output} ]]; then
+		echo "skip ${sample_label} computeMatrix TSS, since it has been done"
+	else
+		computeMatrix reference-point \
+			--scoreFileName ${bwfile} --regionsFileName ${gtf} \
+			--outFileName ${output} \
+			--samplesLabel ${sample_label} \
+			--binSize ${binsize} -a ${downstream} -b ${upstream} \
+			--referencePoint TSS --averageTypeBins median \
+			--numberOfProcessors ${threads} --skipZeros 1>${std} 2>${err}
+	fi
+
+	if [[ $? -eq 0 ]]; then
+		echo "${sample_label} computeMatrix TSS success"
+	else
+		echo "${sample_label} computeMatrix TSS fail, program wrong"
+		exit 100
+	fi
+	#===============================================#
+
+	################ 2.plotProfile ################
+	input=${output}
+	mat=${output_dir}/2.data/1.TSS/${sample_label}_point_tss.mat
+	pic=${output_dir}/3.pic/1.TSS/${sample_label}_point_tss.png
+	mkdir -p $(dirname ${mat}) $(dirname ${pic}) ${log_root}
+
+	std=${log_root}/${sample_label}_plotProfile_TSS.std
+	err=${log_root}/${sample_label}_plotProfile_TSS.err
+
+	if [[ ${skip_done} == "T" && -f ${pic} ]]; then
+		echo "skip ${sample_label} plotProfile TSS, since it has been done"
+	else
+		plotProfile -m ${input} \
+			--outFileNameData ${mat} \
+			-out ${pic} 1>${std} 2>${err}
+	fi
+
+	if [[ $? -eq 0 ]]; then
+		echo "${sample_label} plotProfile TSS success"
+	else
+		echo "${sample_label} plotProfile TSS fail, program wrong"
+		exit 100
+	fi
+	#=============================================#
+elif [[ ${type} == "Body" ]]; then
+	################ 1.computeMatrix ################
+	output=${output_dir}/1.raw_data/2.Body/${sample_label}_body.gz
+	mkdir -p $(dirname ${output}) ${log_root}
+
+	std=${log_root}/${sample_label}_computeMatrix_body.std
+	err=${log_root}/${sample_label}_computeMatrix_body.err
+
+	if [[ ${skip_done} == "T" && -f ${output} ]]; then
+		echo "skip ${sample_label} computeMatrix Body, since it has been done"
+	else
+		computeMatrix scale-regions \
+			--scoreFileName ${bwfile} --regionsFileName ${gtf} \
+			--outFileName ${output} \
+			--samplesLabel ${sample_label} \
+			--binSize ${binsize} -a ${downstream} -b ${upstream} -m ${regionBodyLength} \
+			--averageTypeBins median \
+			--numberOfProcessors ${threads} --skipZeros 1>${std} 2>${err}
+	fi
+
+	if [[ $? -eq 0 ]]; then
+		echo "${sample_label} computeMatrix Body success"
+	else
+		echo "${sample_label} computeMatrix Body fail, program wrong"
+		exit 100
+	fi
+	#===============================================#
+
+	################ 2.plotProfile ################
+	input=${output}
+	mat=${output_dir}/2.data/2.Body/${sample_label}_body.mat
+	pic=${output_dir}/3.pic/2.Body/${sample_label}_body.png
+	mkdir -p $(dirname ${mat}) $(dirname ${pic}) ${log_root}
+
+	std=${log_root}/${sample_label}_plotProfile_Body.std
+	err=${log_root}/${sample_label}_plotProfile_Body.err
+
+	if [[ ${skip_done} == "T" && -f ${pic} ]]; then
+		echo "skip ${sample_label} plotProfile Body, since it has been done"
+	else
+		plotProfile -m ${input} \
+			--outFileNameData ${mat} \
+			-out ${pic} 1>${std} 2>${err}
+	fi
+
+	if [[ $? -eq 0 ]]; then
+		echo "${sample_label} plotProfile Body success"
+	else
+		echo "${sample_label} plotProfile Body fail, program wrong"
+		exit 100
+	fi
+	#=============================================#
+fi
